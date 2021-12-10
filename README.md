@@ -2,7 +2,7 @@
 
 ## Running
 1. Clone repo
-2. Add the cloned directory to your `PYTHONPATH`
+2. Add the cloned directory to your `PYTHONPATH` (e.g. at the end of .bashrc or .zshrc add `export PYTHONPATH=$PYTHONPATH:/where/you/cloned/itg`)
 3. To test it: `python3 tests/test.py`
 
 ## Training
