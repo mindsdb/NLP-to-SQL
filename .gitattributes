@@ -1,0 +1,2 @@
+spider.zip filter=lfs diff=lfs merge=lfs -text
+sparc.zip filter=lfs diff=lfs merge=lfs -text

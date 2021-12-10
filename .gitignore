@@ -1,2 +1,4 @@
 spider
 sparc
+__MACOSX
+*__pycache__*
