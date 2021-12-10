@@ -3,7 +3,7 @@
 ## Running
 1. Clone repo
 2. Add the cloned directory to your `PYTHONPATH`
-3. To test it: `python3 test.py`
+3. To test it: `python3 tests/test.py`
 
 ## Training
 1. Install `git-lfs` 
