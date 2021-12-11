@@ -51,13 +51,14 @@ class ITG:
         openai_response = openai.Completion.create(
             model=MODEL_NAME,
             prompt=str_prompt,
-            temperature=0,
+            temperature=0, # As to not have a lot of randomness
             max_tokens=len(question) * 5,
             top_p=1,
             frequency_penalty=0,
             presence_penalty=0,
             stop=["\n"],
-            n=1,
+            n=1,  # Right now we don't really have any good search criteria so just ask for 1
+            best_of=2
         )
         query = openai_response['choices'][0]['text']
 
