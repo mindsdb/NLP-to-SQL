@@ -1,4 +1,4 @@
-from typing import Any, Iterable, List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 import openai
 from dataclasses import dataclass
 from dataclasses_json import dataclass_json
@@ -44,7 +44,7 @@ class ITG:
             'db_create': self.table_arr,
             'question': question
         })
-        
+
         str_prompt = prompt.to_json()
         # print(f'Requesting with prompt: {str_prompt}')
 
