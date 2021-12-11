@@ -3,7 +3,7 @@ import openai
 from dataclasses import dataclass
 from dataclasses_json import dataclass_json
 import pandas as pd
-from pandas.core.algorithms import isin
+from itg.constant import OPEN_AI_API_KEY, MODEL_NAME
 
 
 @dataclass_json
@@ -38,19 +38,18 @@ class ITG:
         :param nl_query: Natural language query you want turned into a SQL query
         :param database_connection: If provided, query the database and return the result directly
         """
-        openai.api_key = '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'
+        openai.api_key = OPEN_AI_API_KEY
 
         prompt = Prompt.from_dict({
             'db_create': self.table_arr,
             'question': question
         })
         
-        q_start = 'SELECT'
-        str_prompt = prompt.to_json() + f'\n\n{q_start}'
+        str_prompt = prompt.to_json()
         # print(f'Requesting with prompt: {str_prompt}')
 
         openai_response = openai.Completion.create(
-            engine='curie',
+            model=MODEL_NAME,
             prompt=str_prompt,
             temperature=0,
             max_tokens=len(question) * 10,
@@ -58,9 +57,9 @@ class ITG:
             frequency_penalty=0,
             presence_penalty=0,
             stop=["\n"],
-            n=1
+            n=1,
         )
-        query = q_start + openai_response['choices'][0]['text']
+        query = openai_response['choices'][0]['text']
 
         result = None
         if database_connection is not None:
