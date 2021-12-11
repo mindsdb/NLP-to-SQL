@@ -1,0 +1,9 @@
+__title__ = 'ITG'
+__package_name__ = 'ITG'
+__version__ = '0.0.1'
+__description__ = "Text to sql and other more interesting things soon, hopefully"
+__email__ = "enterprise@mindsdb.com"
+__author__ = 'MindsDB Inc'
+__github__ = 'https://github.com/mindsdb/ITG'
+__license__ = 'No license as of yet'
+__copyright__ = 'Copyright 2021- mindsdb'
