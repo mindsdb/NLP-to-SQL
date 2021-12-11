@@ -67,7 +67,7 @@ def train(training_data: TrainData, name: str):
         fp.write('\n'.join(stringified_data))
     training_statements = [
         f'export OPENAI_API_KEY="{OPEN_AI_API_KEY}"',
-        f'openai api fine_tunes.create -t train_file -m {name} --n_epochs 10'
+        f'openai api fine_tunes.create -t train_file -m {name} --n_epochs 5'
     ]
     os.system(' && '.join(training_statements))
 
