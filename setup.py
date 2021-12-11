@@ -4,7 +4,7 @@ import os
 
 
 about = {}
-with open("lightwood/__about__.py") as fp:
+with open("itg/__about__.py") as fp:
     exec(fp.read(), about)
 
 with open("README.md", "r") as fh:
