@@ -52,7 +52,7 @@ class ITG:
             model=MODEL_NAME,
             prompt=str_prompt,
             temperature=0,
-            max_tokens=len(question) * 10,
+            max_tokens=len(question) * 5,
             top_p=1,
             frequency_penalty=0,
             presence_penalty=0,
