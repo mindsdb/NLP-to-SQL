@@ -27,10 +27,5 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     package_data={'project': ['requirements.txt']},
     install_requires=requirements,
-    classifiers=[
-        "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",
-        "Operating System :: OS Independent",
-    ],
-    python_requires=">=3.6"
+    python_requires=">=3.9"
 )
