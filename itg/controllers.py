@@ -50,14 +50,15 @@ class ITG:
         # print(f'Requesting with prompt: {str_prompt}')
 
         openai_response = openai.Completion.create(
-            engine='davinci',
+            engine='curie',
             prompt=str_prompt,
-            temperature=0.3,
-            max_tokens=200,
+            temperature=0,
+            max_tokens=len(question) * 10,
             top_p=1,
             frequency_penalty=0,
             presence_penalty=0,
-            stop=["\n"]
+            stop=["\n"],
+            n=1
         )
         query = q_start + openai_response['choices'][0]['text']
 
