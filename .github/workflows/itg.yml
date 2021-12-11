@@ -3,7 +3,8 @@ name: Integration and Unit Tests for ITG
 on:
   push:
     branches:
-      - main
+      - staging
+      - stable
 
 
 jobs:
