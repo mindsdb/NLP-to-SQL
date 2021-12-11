@@ -51,7 +51,7 @@ class ITG:
         openai_response = openai.Completion.create(
             model=MODEL_NAME,
             prompt=str_prompt,
-            temperature=0, # As to not have a lot of randomness
+            temperature=0,  # As to not have a lot of randomness
             max_tokens=len(question) * 5,
             top_p=1,
             frequency_penalty=0,
