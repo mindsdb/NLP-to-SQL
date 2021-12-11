@@ -12,10 +12,15 @@ TrainData = List[Dict[Prompt, str]]
 
 def parse_db_file(name: str) -> str:
     # Names of the sql files seem to vary for no(?) reason
+    sql_file_name = None
     for filename in os.listdir(f'sparc/database/{name}/'):
         if filename.endswith('.sql'):
             sql_file_name = filename
             break
+
+    if sql_file_name is None:
+        print(f'No sql data found for database: {name}')
+        return []
 
     with open(f'sparc/database/{name}/{sql_file_name}', 'r') as fp:
         fp.readline()
@@ -31,6 +36,9 @@ def sparc_to_prompt() -> TrainData:
     train_data = []
     for example in raw_train_data:
         db_data = parse_db_file(example['database_id'])
+        if len(db_data) == 0:
+            continue
+
         for interaction in example['interaction']:
             real_query = interaction['query']
             question = interaction['utterance']
