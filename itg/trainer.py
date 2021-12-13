@@ -30,52 +30,148 @@ def parse_db_file(name: str) -> str:
     return tables
 
 
-def sparc_to_prompt() -> TrainData:
-    raw_train_data = json.load(open('sparc/train.json', 'r'))
+# Try to only train on and take into consideration simple queries for now
+def is_simple_query(query):
+    complicated = False
 
-    train_data = []
-    for example in raw_train_data:
-        db_data = parse_db_file(example['database_id'])
+    lq = query.lower()
+    if ' join ' in lq:
+        complicated = True
+    if len(lq) > 100:
+        complicated = True
+    if ' order ' in lq:
+        complicated = True
+    if ' limit ' in lq:
+        complicated = True
+
+    if not complicated:
+        return True
+    else:
+        return False
+
+
+def sparc_to_prompt() -> TrainData:
+    raw_data = json.load(open('sparc/train.json', 'r'))
+    raw_data += json.load(open('sparc/dev.json', 'r'))
+    db_cache = {}
+
+    data = []
+    for example in raw_data:
+        if example['database_id'] not in db_cache:
+            db_cache[example['database_id']] = parse_db_file(example['database_id'])
+        db_data = db_cache[example['database_id']]
         if len(db_data) == 0:
             continue
 
         for interaction in example['interaction']:
             real_query = interaction['query']
+            if not is_simple_query(real_query):
+                continue
             question = interaction['utterance']
             prompt = Prompt(db_create=db_data, question=question)
             stringified_prompt = prompt.to_json()
             if len(stringified_prompt) > MAX_TRAIN_LENGTH:
-                print(f'Too big at length: {len(stringified_prompt)}')
                 # Most of the data is in the table, so if size is exceded by more than 100, assume all are invalid
                 if len(stringified_prompt) > MAX_TRAIN_LENGTH + 100:
-                    print(f'Skipping example with database: {example["database_id"]}')
                     break
                 continue
 
-            print(f'Not too big at length: {len(stringified_prompt)}')
+            data.append({'prompt': stringified_prompt, 'completion': real_query})
 
-            train_data.append({'prompt': stringified_prompt, 'completion': real_query})
+            if len(data) > TRAIN_ON:
+                return data
+    return data
 
-            if len(train_data) > TRAIN_ON:
-                return train_data
+
+def spider_to_prompt():
+    raw_data = json.load(open('spider/train_spider.json', 'r'))
+    raw_data += json.load(open('spider/dev.json', 'r'))
+    db_cache = {}
+
+    data = []
+    for interaction in raw_data:
+        if interaction['db_id'] not in db_cache:
+            db_cache[interaction['db_id']] = parse_db_file(interaction['db_id'])
+        db_data = db_cache[interaction['db_id']]
+        if len(db_data) == 0:
+            continue
+
+        real_query = interaction['query']
+        if not is_simple_query(real_query):
+            continue
+        question = interaction['question']
+        prompt = Prompt(db_create=db_data, question=question)
+        stringified_prompt = prompt.to_json()
+        if len(stringified_prompt) > MAX_TRAIN_LENGTH:
+            continue
+
+        data.append({'prompt': prompt, 'completion': real_query})
+
+        if len(data) > TRAIN_ON:
+            return data
+
+    return data
 
 
-def train(training_data: TrainData, name: str):
+def train():
+    training_data = sparc_to_prompt()
+    print(f'Train data length: {len(training_data)}')
+
     # @TODO: Figure out how to switch to the python API
-    with open('train_file', 'w') as fp:
-        stringified_data = [json.dumps(x) for x in training_data]
-        fp.write('\n'.join(stringified_data))
-    training_statements = [
-        f'export OPENAI_API_KEY="{OPEN_AI_API_KEY}"',
-        f'openai api fine_tunes.create -t train_file -m {name} --n_epochs 5'
-    ]
-    os.system(' && '.join(training_statements))
+    for config_options in [
+        ('json', 1),
+        ('text', 1),
+        ('json', 5),
+        ('text', 5),
+    ]:
+        prompt_fmt = config_options[0]
+        n_epochs = config_options[1]
+
+        if prompt_fmt == 'json':
+            stringified_data = [{'prompt': x['prompt'].to_json(), 'completion': x['completion']} for x in training_data]
+        elif prompt_fmt == 'text':
+            stringified_data = [{'prompt': x['prompt'].to_text(), 'completion': x['completion']} for x in training_data]
+
+        train_file = f'train_file_{prompt_fmt}_{n_epochs}'
+        with open(train_file, 'w') as fp:
+            fp.write('\n'.join(stringified_data))
+
+        training_statements = [
+            f'export OPENAI_API_KEY="{OPEN_AI_API_KEY}"',
+            f'openai api fine_tunes.create -t {train_file} -m {BASE_MODEL} --n_epochs {n_epochs}'
+        ]
+        os.system(' && '.join(training_statements))
 
 
-def main():
-    train_data = sparc_to_prompt()
-    train(train_data, BASE_MODEL)
+def test():
+    testing_data = spider_to_prompt()
+    print(f'Test data length: {len(testing_data)}')
+
+    for model_name in [
+        '???'
+    ]:
+        nr_correct = 0
+        nr_incorrect = 0
+        for prompt, real_query in testing_data:
+            itg = ITG(model_name)
+            itg.register(prompt.db_create)
+            response = itg(prompt.question)
+            predicted_query = response.result
+            correct = predicted_query == real_query
+            print(f"""
+Predicted query: {predicted_query}
+Real query: {real_query}
+Correct: {correct}
+            """)
+            if correct:
+                nr_correct += 1
+            else:
+                nr_incorrect += 1
+
+    print(f'Number of incorrect observations: {nr_incorrect}')
+    print(f'Number of correct observations: {nr_correct}')
 
 
 if __name__ == '__main__':
-    main()
+    train()
+    test()

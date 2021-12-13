@@ -16,6 +16,12 @@ class Prompt:
     db_create: List[str]
     question: str
 
+    def to_text(self):
+        text = '\n'.join(self.db_create)
+        text += '\n' + self.question
+        return text
+
+
 
 @dataclass
 class Response:
@@ -30,8 +36,9 @@ class Response:
 class ITG:
     table_arr: List[str]
 
-    def __init__(self) -> None:
+    def __init__(self, model_name=MODEL_NAME) -> None:
         self.table_arr = []
+        self.model_name = model_name
 
     def __call__(self, question: str, database_connection: Any = None) -> Response:
         """
@@ -49,7 +56,7 @@ class ITG:
         # print(f'Requesting with prompt: {str_prompt}')
 
         openai_response = openai.Completion.create(
-            model=MODEL_NAME,
+            model=self.model_name,
             prompt=str_prompt,
             temperature=0,  # As to not have a lot of randomness
             max_tokens=len(question) * 5,
