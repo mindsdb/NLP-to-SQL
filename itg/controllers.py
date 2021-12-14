@@ -4,9 +4,9 @@ from dataclasses import dataclass
 from dataclasses_json import dataclass_json
 import pandas as pd
 from itg.constant import OPEN_AI_API_KEY, MODEL_NAME
+import json
 
 
-@dataclass_json
 @dataclass
 class Prompt:
     """
@@ -16,10 +16,20 @@ class Prompt:
     db_create: List[str]
     question: str
 
+    def _process_db_data(self):
+        dbs = '|'.join([x.replace('\n', '').replace('  ', ' ') for x in self.db_create])
+        return dbs
+        
     def to_text(self):
-        text = '\n'.join(self.db_create)
+        text = self._process_db_data()
         text += '\n' + self.question
         return text
+
+    def to_dict(self):
+        return {'db_create': self._process_db_data(), 'question': self.question}
+
+    def to_json(self):
+        return json.dumps(self.to_dict())
 
 
 

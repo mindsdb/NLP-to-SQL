@@ -160,26 +160,31 @@ def test():
         fmt = 'json' if '_json_' in fmt else fmt
         nr_correct = 0
         nr_incorrect = 0
-        for item in testing_data[0:20]:
+        for item in testing_data[0:50]:
             prompt = item['prompt']
             real_query = item['completion']
             itg = ITG(model_name, fmt)
             itg.register(prompt.db_create)
             response = itg(prompt.question)
             predicted_query = response.query
-            correct = predicted_query == real_query
+            correct = predicted_query.lower() == real_query.lower()
+
+            '''
             print(f"""
 Predicted query: {predicted_query}
 Real query: {real_query}
 Correct: {correct}
             """)
+            '''
+
             if correct:
                 nr_correct += 1
             else:
                 nr_incorrect += 1
 
-    print(f'Number of incorrect observations: {nr_incorrect}')
-    print(f'Number of correct observations: {nr_correct}')
+        print(f'Results for model: {model_name}')
+        print(f'Number of incorrect observations: {nr_incorrect}')
+        print(f'Number of correct observations: {nr_correct}')
 
 
 if __name__ == '__main__':
