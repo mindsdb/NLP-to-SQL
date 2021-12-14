@@ -4,6 +4,7 @@ import json
 import os
 from typing import List
 from itg.constant import OPEN_AI_API_KEY, BASE_MODEL, MAX_TRAIN_LENGTH, TRAIN_ON
+import subprocess
 
 
 itg = ITG()
@@ -76,7 +77,7 @@ def sparc_to_prompt() -> TrainData:
                     break
                 continue
 
-            data.append({'prompt': stringified_prompt, 'completion': real_query})
+            data.append({'prompt': prompt, 'completion': real_query})
 
             if len(data) > TRAIN_ON:
                 return data
@@ -134,7 +135,7 @@ def train():
 
         train_file = f'train_file_{prompt_fmt}_{n_epochs}'
         with open(train_file, 'w') as fp:
-            fp.write('\n'.join(stringified_data))
+            fp.write('\n'.join([json.dumps(x) for x in stringified_data]))
 
         training_statements = [
             f'export OPENAI_API_KEY="{OPEN_AI_API_KEY}"',
@@ -147,12 +148,19 @@ def test():
     testing_data = spider_to_prompt()
     print(f'Test data length: {len(testing_data)}')
 
-    for model_name in [
-        '???'
-    ]:
+    result = os.popen(f'export OPENAI_API_KEY="{OPEN_AI_API_KEY}" && openai api fine_tunes.list').read()
+    result = json.loads(result)['data']
+    models_names = [x['fine_tuned_model'] for x in result
+                    if x['fine_tuned_model'] is not None 
+                    and ('2021-12-13' in x['fine_tuned_model']
+                    or '2021-12-14' in x['fine_tuned_model'])]
+
+    for model_name in models_names:
         nr_correct = 0
         nr_incorrect = 0
-        for prompt, real_query in testing_data:
+        for item in testing_data[0:20]:
+            prompt = item['prompt']
+            real_query = item['completion']
             itg = ITG(model_name)
             itg.register(prompt.db_create)
             response = itg(prompt.question)
@@ -173,5 +181,5 @@ Correct: {correct}
 
 
 if __name__ == '__main__':
-    train()
+    # train()
     test()

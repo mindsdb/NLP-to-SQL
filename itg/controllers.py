@@ -53,7 +53,6 @@ class ITG:
         })
 
         str_prompt = prompt.to_json()
-        # print(f'Requesting with prompt: {str_prompt}')
 
         openai_response = openai.Completion.create(
             model=self.model_name,
