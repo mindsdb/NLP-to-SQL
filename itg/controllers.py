@@ -36,9 +36,10 @@ class Response:
 class ITG:
     table_arr: List[str]
 
-    def __init__(self, model_name=MODEL_NAME) -> None:
+    def __init__(self, model_name=MODEL_NAME, fmt='json') -> None:
         self.table_arr = []
         self.model_name = model_name
+        self.fmt = fmt
 
     def __call__(self, question: str, database_connection: Any = None) -> Response:
         """
@@ -52,7 +53,12 @@ class ITG:
             'question': question
         })
 
-        str_prompt = prompt.to_json()
+        if self.fmt == 'json':
+            str_prompt = prompt.to_json()
+        elif self.fmt == 'text':
+            str_prompt = prompt.to_text()
+        else:
+            raise Exception(f'Invalid format: {self.fmt}')
 
         openai_response = openai.Completion.create(
             model=self.model_name,

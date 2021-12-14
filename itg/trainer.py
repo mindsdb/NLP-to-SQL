@@ -150,21 +150,23 @@ def test():
 
     result = os.popen(f'export OPENAI_API_KEY="{OPEN_AI_API_KEY}" && openai api fine_tunes.list').read()
     result = json.loads(result)['data']
-    models_names = [x['fine_tuned_model'] for x in result
-                    if x['fine_tuned_model'] is not None 
-                    and ('2021-12-13' in x['fine_tuned_model']
-                    or '2021-12-14' in x['fine_tuned_model'])]
+    models = [(x['fine_tuned_model'], x['training_files'][0]['filename']) for x in result
+              if x['fine_tuned_model'] is not None
+              and ('2021-12-13' in x['fine_tuned_model']
+              or '2021-12-14' in x['fine_tuned_model'])]
 
-    for model_name in models_names:
+    for model_name, fmt in models:
+        fmt = 'text' if '_text_' in fmt else fmt
+        fmt = 'json' if '_json_' in fmt else fmt
         nr_correct = 0
         nr_incorrect = 0
         for item in testing_data[0:20]:
             prompt = item['prompt']
             real_query = item['completion']
-            itg = ITG(model_name)
+            itg = ITG(model_name, fmt)
             itg.register(prompt.db_create)
             response = itg(prompt.question)
-            predicted_query = response.result
+            predicted_query = response.query
             correct = predicted_query == real_query
             print(f"""
 Predicted query: {predicted_query}

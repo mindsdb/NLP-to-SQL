@@ -2,4 +2,4 @@ spider
 sparc
 __MACOSX
 *__pycache__*
-train_file
+train_file*
