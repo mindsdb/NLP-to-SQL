@@ -36,7 +36,7 @@ class T5WS():
         features = self.tokenizer([prompt.to_text()], return_tensors='pt')
         output = None
         if query is not None:
-            output = self.tokenizer([output], return_tensors='pt')
+            output = self.tokenizer([query], return_tensors='pt')
         return features, output
 
     def __call__(self, prompt: Prompt) -> str:
