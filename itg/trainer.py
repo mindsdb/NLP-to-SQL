@@ -6,6 +6,7 @@ from typing import List
 from itg.constant import OPEN_AI_API_KEY, BASE_MODEL, MAX_TRAIN_LENGTH, TRAIN_ON
 from t5_wikisql_base import T5WS
 import pickle
+from simple_ddl_parser import DDLParser
 
 
 itg = ITG()
@@ -31,7 +32,17 @@ def parse_db_file(name: str) -> str:
     tables = [x for x in tables if 'insert' not in x.lower()]
     tables = [x for x in tables if 'describe' not in x.lower()]
     tables = [x for x in tables if 'create' in x.lower()]
-    return tables
+    valid_tables = []
+    for table in tables:
+        try:
+            result = DDLParser(table).run()
+            assert len(result) == 1
+            parsed_table = result[0]
+            assert 'table_name' in parsed_table and 'columns' in parsed_table
+            valid_tables.append(table)
+        except Exception:
+            pass
+    return valid_tables
 
 
 # Try to only train on and take into consideration simple queries for now
@@ -72,7 +83,6 @@ def sparc_to_prompt() -> TrainData:
         if example['database_id'] not in db_cache:
             db_cache[example['database_id']] = parse_db_file(example['database_id'])
         db_data = db_cache[example['database_id']]
-        print(db_data)
         if len(db_data) == 0:
             continue
 
@@ -81,6 +91,7 @@ def sparc_to_prompt() -> TrainData:
             if not is_simple_query(real_query):
                 continue
             question = interaction['utterance']
+            print(db_data)
             prompt = Prompt(db_create=db_data, question=question)
             stringified_prompt = prompt.to_text()
             if len(stringified_prompt) > MAX_TRAIN_LENGTH:
