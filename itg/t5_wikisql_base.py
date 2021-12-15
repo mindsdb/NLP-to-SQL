@@ -92,7 +92,7 @@ class T5WS():
                 optimizer.step()
                 scheduler.step()
                 print(f'Current total loss: {np.mean(total_loss)} | Current epoch: {epoch} [Step {step},\
-                    {round(100 * len(dst) / (batch_size * step), 2)}% done]')
+                    {round(100 * (batch_size * step) / len(dst), 2)}% done]')
             print(f'\nTotal loss at end of epoch {epoch}: {np.mean(total_loss)} !\n')
 
             self.model = self.model.eval()
