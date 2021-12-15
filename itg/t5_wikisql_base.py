@@ -7,6 +7,7 @@ from torch.utils.data import Dataset, DataLoader
 from lightwood.helpers.torch import LightwoodAutocast
 import numpy as np
 import torch
+import random
 
 
 class T5WSDataset(Dataset):
@@ -55,8 +56,12 @@ class T5WS():
         return self.tokenizer.decode(output[0])
 
     def train(self, training_data: List[Tuple[Prompt, str]]):
-        ds = T5WSDataset(self, training_data)
-        dl = DataLoader(ds, batch_size=4, shuffle=True)
+        random.seed(14212)
+        random.shuffle(training_data)
+
+        dst = T5WSDataset(self, training_data[:int(len(training_data) * 0.8)])
+        dlt = DataLoader(dst, batch_size=4, shuffle=True)
+        rawv = training_data[int(len(training_data) * 0.8):]
 
         parameters = self.model.parameters()
         optimizer = AdamW(parameters, lr=1e-5)
@@ -65,10 +70,11 @@ class T5WS():
             num_warmup_steps=0,
             num_training_steps=len(ds) * 100,
         )
-        self.model = self.model.train()
+        
         for epoch in range(100):
             total_loss = []
-            for batch in dl:
+            self.model = self.model.train()
+            for batch in dlt:
                 optimizer.zero_grad()
 
                 with LightwoodAutocast():
@@ -82,3 +88,17 @@ class T5WS():
                 scheduler.step()
                 print(f'Current total loss: {np.mean(total_loss)} | Current epoch: {epoch}')
             print(f'\nTotal loss at end of epoch {epoch}: {np.mean(total_loss)} !\n')
+
+            self.model = self.model.eval()
+            correct = 0
+            total = len(rawv)
+            for item in rawv:
+                with torch.no_grad():
+                    with LightwoodAutocast():
+                        predicted_completion = self(item['prompt'])
+                        real_completion = item['completion']
+
+                        if predicted_completion.lower() == real_completion.lower():
+                            correct += 1
+                        print(f'Predicted: {predicted_completion}\nReal: {real_completion}\n')
+            print(f'\n\nModel was correct for {correct} queries ({100 * correct / total}%)\n\n')
