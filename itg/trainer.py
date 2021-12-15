@@ -72,6 +72,7 @@ def sparc_to_prompt() -> TrainData:
         if example['database_id'] not in db_cache:
             db_cache[example['database_id']] = parse_db_file(example['database_id'])
         db_data = db_cache[example['database_id']]
+        print(db_data)
         if len(db_data) == 0:
             continue
 
