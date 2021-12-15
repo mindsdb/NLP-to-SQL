@@ -2,3 +2,6 @@ openai
 pandas
 dfsql
 dataclasses_json
+transformers[sentencepiece]
+lightwood
+torch

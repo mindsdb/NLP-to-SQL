@@ -4,7 +4,7 @@ import json
 import os
 from typing import List
 from itg.constant import OPEN_AI_API_KEY, BASE_MODEL, MAX_TRAIN_LENGTH, TRAIN_ON
-import subprocess
+from t5_wikisql_base import T5WS
 
 
 itg = ITG()
@@ -114,7 +114,7 @@ def spider_to_prompt():
     return data
 
 
-def train():
+def train_openai():
     training_data = sparc_to_prompt()
     print(f'Train data length: {len(training_data)}')
 
@@ -144,7 +144,7 @@ def train():
         os.system(' && '.join(training_statements))
 
 
-def test():
+def test_openai():
     testing_data = spider_to_prompt()
     print(f'Test data length: {len(testing_data)}')
 
@@ -187,6 +187,13 @@ Correct: {correct}
         print(f'Number of correct observations: {nr_correct}')
 
 
+def train_t5ws():
+    training_data = sparc_to_prompt()
+    print(f'Test data length: {len(training_data)}')
+    model = T5WS()
+    model.train(training_data)
+
 if __name__ == '__main__':
-    # train()
-    test()
+    # train_openai()
+    # test_openai()
+    train_t5ws()
