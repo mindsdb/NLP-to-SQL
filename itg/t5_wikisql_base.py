@@ -16,8 +16,6 @@ class T5WSDataset(Dataset):
         self.data = []
         for item in data:
             features, output = t5ws._prepare(item['prompt'], item['completion'])
-            print(features)
-            print(features['input_ids'][0, :])
             self.data.append({
                 'input_ids': features['input_ids'][0, :].cuda(),
                 'attention_mask': features['attention_mask'][0, :].cuda()
@@ -58,7 +56,7 @@ class T5WS():
 
     def train(self, training_data: List[Tuple[Prompt, str]]):
         ds = T5WSDataset(self, training_data)
-        dl = DataLoader(ds, batch_size=8, shuffle=True)
+        dl = DataLoader(ds, batch_size=4, shuffle=True)
 
         parameters = self.model.parameters()
         optimizer = AdamW(parameters, lr=1e-5)

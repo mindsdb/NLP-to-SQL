@@ -1,10 +1,10 @@
 from typing import Any, List, Optional, Tuple, Union
 import openai
 from dataclasses import dataclass
-from dataclasses_json import dataclass_json
 import pandas as pd
 from itg.constant import OPEN_AI_API_KEY, MODEL_NAME
 import json
+from simple_ddl_parser import DDLParser
 
 
 @dataclass
@@ -16,10 +16,15 @@ class Prompt:
     db_create: List[str]
     question: str
 
+    def _srhink_table(self, table: str) -> str:
+        parsed_table = DDLParser(table)[0]
+        table = parsed_table['table_name'] + '(' + [x['name'] for x in parsed_table['columns']] + ')'
+        return table
+
     def _process_db_data(self):
-        dbs = '|'.join([x.replace('\n', '').replace('  ', ' ') for x in self.db_create])
+        dbs = '\n'.join([self._srhink_table(x) for x in self.db_create])
         return dbs
-        
+
     def to_text(self):
         text = self._process_db_data()
         text += '\n' + self.question

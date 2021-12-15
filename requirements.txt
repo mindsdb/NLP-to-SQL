@@ -5,3 +5,4 @@ dataclasses_json
 transformers[sentencepiece]
 lightwood
 torch
+simple_ddl_parser
