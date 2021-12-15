@@ -12,8 +12,8 @@ class T5WSDataset(Dataset):
         super(T5WSDataset).__init__()
         self.t5ws = t5ws
         self.data = []
-        for prompt, query in data:
-            features, output = t5ws._prepare(prompt, query)
+        for item in data:
+            features, output = t5ws._prepare(item['prompt'], item['completion'])
             self.data.append({
                 'input_ids': features['input_ids'],
                 'attention_mask': features['attention_mask'],
