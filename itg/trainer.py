@@ -28,7 +28,9 @@ def parse_db_file(name: str) -> str:
         fp.readline()
         sql = fp.read().replace('"', '')
     tables = sql.split(';')
-    tables = [x for x in tables if 'INSERT' not in x]
+    tables = [x for x in tables if 'insert' not in x.lower()]
+    tables = [x for x in tables if 'describe' not in x.lower()]
+    tables = [x for x in tables if 'create' in x.lower()]
     return tables
 
 
@@ -66,6 +68,7 @@ def sparc_to_prompt() -> TrainData:
 
     data = []
     for example in raw_data:
+        print(f'Length of data: {len(data)}, current id: {example["database_id"]}!')
         if example['database_id'] not in db_cache:
             db_cache[example['database_id']] = parse_db_file(example['database_id'])
         db_data = db_cache[example['database_id']]
@@ -78,7 +81,7 @@ def sparc_to_prompt() -> TrainData:
                 continue
             question = interaction['utterance']
             prompt = Prompt(db_create=db_data, question=question)
-            stringified_prompt = prompt.to_json()
+            stringified_prompt = prompt.to_text()
             if len(stringified_prompt) > MAX_TRAIN_LENGTH:
                 # Most of the data is in the table, so if size is exceded by more than 100, assume all are invalid
                 if len(stringified_prompt) > MAX_TRAIN_LENGTH + 100:
@@ -121,7 +124,7 @@ def spider_to_prompt():
             continue
         question = interaction['question']
         prompt = Prompt(db_create=db_data, question=question)
-        stringified_prompt = prompt.to_json()
+        stringified_prompt = prompt.to_text()
         if len(stringified_prompt) > MAX_TRAIN_LENGTH:
             continue
 
@@ -217,6 +220,6 @@ def train_t5ws():
     model.train(training_data)
 
 if __name__ == '__main__':
-    # train_openai()
+    train_openai()
     # test_openai()
-    train_t5ws()
+    # train_t5ws()
