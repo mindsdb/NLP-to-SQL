@@ -21,6 +21,8 @@ class Prompt:
         if len(result) != 1:
             return False
         parsed_table = result[0]
+        if 'table_name' not in parsed_table or 'columns' not in parsed_table:
+            return False
         table = parsed_table['table_name'] + '(' + ','.join([x['name'] for x in parsed_table['columns']]) + ')'
         return table
 

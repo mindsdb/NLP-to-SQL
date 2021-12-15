@@ -3,3 +3,4 @@ sparc
 __MACOSX
 *__pycache__*
 train_file*
+*pickle

@@ -5,6 +5,7 @@ import os
 from typing import List
 from itg.constant import OPEN_AI_API_KEY, BASE_MODEL, MAX_TRAIN_LENGTH, TRAIN_ON
 from t5_wikisql_base import T5WS
+import pickle
 
 
 itg = ITG()
@@ -52,6 +53,13 @@ def is_simple_query(query):
 
 
 def sparc_to_prompt() -> TrainData:
+    try:
+        data = pickle.load(open(f'sparc_{TRAIN_ON}.pickle', 'rb'))
+        print(f'Loaded cached data of length {len(data)}')
+        return data
+    except Exception as e:
+        print(f'Failed to load cached data: {e}')
+
     raw_data = json.load(open('sparc/train.json', 'r'))
     raw_data += json.load(open('sparc/dev.json', 'r'))
     db_cache = {}
@@ -80,11 +88,22 @@ def sparc_to_prompt() -> TrainData:
             data.append({'prompt': prompt, 'completion': real_query})
 
             if len(data) > TRAIN_ON:
+                with open(f'sparc_{TRAIN_ON}.pickle', 'wb') as fp:
+                    pickle.dump(data, fp)
                 return data
+    with open(f'sparc_{TRAIN_ON}.pickle', 'wb') as fp:
+        pickle.dump(data, fp)
     return data
 
 
 def spider_to_prompt():
+    try:
+        data = pickle.load(open(f'spider_{TRAIN_ON}.pickle', 'rb'))
+        print(f'Loaded cached data of length {len(data)}')
+        return data
+    except Exception as e:
+        print(f'Failed to load cached data: {e}')
+        pass
     raw_data = json.load(open('spider/train_spider.json', 'r'))
     raw_data += json.load(open('spider/dev.json', 'r'))
     db_cache = {}
@@ -109,8 +128,11 @@ def spider_to_prompt():
         data.append({'prompt': prompt, 'completion': real_query})
 
         if len(data) > TRAIN_ON:
+            with open(f'spider_{TRAIN_ON}.pickle', 'wb') as fp:
+                pickle.dump(data, fp)
             return data
-
+    with open(f'spider_{TRAIN_ON}.pickle', 'wb') as fp:
+        pickle.dump(data, fp)
     return data
 
 
