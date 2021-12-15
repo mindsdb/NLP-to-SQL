@@ -16,12 +16,14 @@ class T5WSDataset(Dataset):
         self.data = []
         for item in data:
             features, output = t5ws._prepare(item['prompt'], item['completion'])
+            print(features)
+            print(features['input_ids'][0, :])
             self.data.append({
-                'input_ids': features['input_ids'].cuda(),
-                'attention_mask': features['attention_mask'].cuda()
+                'input_ids': features['input_ids'][0, :].cuda(),
+                'attention_mask': features['attention_mask'][0, :].cuda()
             })
             if output is not None:
-                self.data[-1]['labels'] = output.cuda()
+                self.data[-1]['labels'] = output[0, :].cuda()
 
     def __len__(self):
         return len(self.data)
@@ -32,10 +34,10 @@ class T5WSDataset(Dataset):
 
 class T5WS():
     def __init__(self):
-        # self.tokenizer = AutoTokenizer.from_pretrained("mrm8488/t5-base-finetuned-wikiSQL")
-        # self.model = AutoModelWithLMHead.from_pretrained("mrm8488/t5-base-finetuned-wikiSQL").cuda()
-        self.tokenizer = T5Tokenizer.from_pretrained("t5-small")
-        self.model = T5ForConditionalGeneration.from_pretrained("t5-small").cuda()
+        self.tokenizer = AutoTokenizer.from_pretrained("mrm8488/t5-base-finetuned-wikiSQL")
+        self.model = AutoModelWithLMHead.from_pretrained("mrm8488/t5-base-finetuned-wikiSQL").cuda()
+        # self.tokenizer = T5Tokenizer.from_pretrained("t5-small")
+        # self.model = T5ForConditionalGeneration.from_pretrained("t5-small").cuda()
         
     def _prepare(self, prompt: Prompt, query: str = None):
         features = self.tokenizer([prompt.to_text()], return_tensors='pt',
@@ -56,7 +58,7 @@ class T5WS():
 
     def train(self, training_data: List[Tuple[Prompt, str]]):
         ds = T5WSDataset(self, training_data)
-        dl = DataLoader(ds, batch_size=4, shuffle=True)
+        dl = DataLoader(ds, batch_size=8, shuffle=True)
 
         parameters = self.model.parameters()
         optimizer = AdamW(parameters, lr=1e-5)
