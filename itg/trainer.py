@@ -226,11 +226,11 @@ Correct: {correct}
 
 def train_t5ws():
     training_data = sparc_to_prompt()
-    print(f'Test data length: {len(training_data)}')
+    print(f'Train data length: {len(training_data)}')
     model = T5WS()
     model.train(training_data)
 
 if __name__ == '__main__':
-    train_openai()
+    # train_openai()
     # test_openai()
-    # train_t5ws()
+    train_t5ws()

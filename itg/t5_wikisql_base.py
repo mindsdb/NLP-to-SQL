@@ -59,23 +59,27 @@ class T5WS():
     def train(self, training_data: List[Tuple[Prompt, str]]):
         random.seed(14212)
         random.shuffle(training_data)
+        nr_epochs = 20
+        batch_size = 4
 
         dst = T5WSDataset(self, training_data[:int(len(training_data) * 0.8)])
-        dlt = DataLoader(dst, batch_size=4, shuffle=True)
+        dlt = DataLoader(dst, batch_size=batch_size, shuffle=True)
         rawv = training_data[int(len(training_data) * 0.8):]
 
         parameters = self.model.parameters()
         optimizer = AdamW(parameters, lr=1e-5)
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
-            num_warmup_steps=0,
-            num_training_steps=len(dst) * 100,
+            num_warmup_steps=30,
+            num_training_steps=len(dst) * nr_epochs,
         )
         
-        for epoch in range(100):
+        for epoch in range(nr_epochs):
             total_loss = []
             self.model = self.model.train()
+            step = 0
             for batch in dlt:
+                step += 1
                 optimizer.zero_grad()
 
                 with LightwoodAutocast():
@@ -87,7 +91,8 @@ class T5WS():
                 loss.backward()
                 optimizer.step()
                 scheduler.step()
-                print(f'Current total loss: {np.mean(total_loss)} | Current epoch: {epoch}')
+                print(f'Current total loss: {np.mean(total_loss)} | Current epoch: {epoch} [Step {step},\
+                    {100 * len(dst)/ (batch_size * step)}% done]')
             print(f'\nTotal loss at end of epoch {epoch}: {np.mean(total_loss)} !\n')
 
             self.model = self.model.eval()
