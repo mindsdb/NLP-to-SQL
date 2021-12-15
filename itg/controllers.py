@@ -17,12 +17,16 @@ class Prompt:
     question: str
 
     def _srhink_table(self, table: str) -> str:
-        parsed_table = DDLParser(table)[0]
-        table = parsed_table['table_name'] + '(' + [x['name'] for x in parsed_table['columns']] + ')'
+        result = DDLParser(table).run()
+        if len(result) != 1:
+            return False
+        parsed_table = result[0]
+        table = parsed_table['table_name'] + '(' + ','.join([x['name'] for x in parsed_table['columns']]) + ')'
         return table
 
     def _process_db_data(self):
-        dbs = '\n'.join([self._srhink_table(x) for x in self.db_create])
+        dbs = [self._srhink_table(x) for x in self.db_create]
+        dbs = '\n'.join([x for x in dbs if x is not False])
         return dbs
 
     def to_text(self):
