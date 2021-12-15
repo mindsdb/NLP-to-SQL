@@ -52,7 +52,8 @@ class T5WS():
 
     def __call__(self, prompt: Prompt) -> str:
         features, _ = self._prepare(prompt)
-        output = self.model.generate(input_ids=features['input_ids'], attention_mask=features['attention_mask'])
+        output = self.model.generate(input_ids=features['input_ids'].cuda(),
+                                     attention_mask=features['attention_mask'].cuda())
         return self.tokenizer.decode(output[0])
 
     def train(self, training_data: List[Tuple[Prompt, str]]):
@@ -68,7 +69,7 @@ class T5WS():
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
             num_warmup_steps=0,
-            num_training_steps=len(ds) * 100,
+            num_training_steps=len(dst) * 100,
         )
         
         for epoch in range(100):

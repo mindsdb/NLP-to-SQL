@@ -120,13 +120,13 @@ def train_openai():
 
     # @TODO: Figure out how to switch to the python API
     for config_options in [
-        ('json', 1),
-        ('text', 1),
-        ('json', 5),
-        ('text', 5),
+        ('text', 5, 1),
+        ('text', 5, 3),
+        ('text', 5, 10),
     ]:
         prompt_fmt = config_options[0]
         n_epochs = config_options[1]
+        learning_rate_multiplier = config_options[2]
 
         if prompt_fmt == 'json':
             stringified_data = [{'prompt': x['prompt'].to_json(), 'completion': x['completion']} for x in training_data]
@@ -139,7 +139,8 @@ def train_openai():
 
         training_statements = [
             f'export OPENAI_API_KEY="{OPEN_AI_API_KEY}"',
-            f'openai api fine_tunes.create -t {train_file} -m {BASE_MODEL} --n_epochs {n_epochs}'
+            f'openai api fine_tunes.create -t {train_file} -m {BASE_MODEL} --n_epochs {n_epochs} \
+                --learning_rate_multiplier {learning_rate_multiplier}'
         ]
         os.system(' && '.join(training_statements))
 
@@ -152,12 +153,12 @@ def test_openai():
     result = json.loads(result)['data']
     models = [(x['fine_tuned_model'], x['training_files'][0]['filename']) for x in result
               if x['fine_tuned_model'] is not None
-              and ('2021-12-13' in x['fine_tuned_model']
-              or '2021-12-14' in x['fine_tuned_model'])]
+              and ('2021-12-15' in x['fine_tuned_model']
+              or '2021-12-15' in x['fine_tuned_model'])]
 
-    for model_name, fmt in models:
-        fmt = 'text' if '_text_' in fmt else fmt
-        fmt = 'json' if '_json_' in fmt else fmt
+    for model_name, train_file in models:
+        fmt = 'text' if '_text_' in train_file else 'unknown'
+        fmt = 'json' if '_json_' in train_file else 'unknown'
         nr_correct = 0
         nr_incorrect = 0
         for item in testing_data[0:50]:
