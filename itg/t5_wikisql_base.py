@@ -29,7 +29,7 @@ class T5WSDataset(Dataset):
 
 class T5WS():
     def __init__(self):
-        self.tokenizer = AutoTokenizer.from_pretrained("mrm8488/t5-base-finetuned-wikiSQL").cuda()
+        self.tokenizer = AutoTokenizer.from_pretrained("mrm8488/t5-base-finetuned-wikiSQL")
         self.model = AutoModelWithLMHead.from_pretrained("mrm8488/t5-base-finetuned-wikiSQL").cuda()
 
     def _prepare(self, prompt: Prompt, query: str = None):
