@@ -29,8 +29,8 @@ class T5WSDataset(Dataset):
 
 class T5WS():
     def __init__(self):
-        self.tokenizer = AutoTokenizer.from_pretrained("mrm8488/t5-base-finetuned-wikiSQL")
-        self.model = AutoModelWithLMHead.from_pretrained("mrm8488/t5-base-finetuned-wikiSQL")
+        self.tokenizer = AutoTokenizer.from_pretrained("mrm8488/t5-base-finetuned-wikiSQL").cuda()
+        self.model = AutoModelWithLMHead.from_pretrained("mrm8488/t5-base-finetuned-wikiSQL").cuda()
 
     def _prepare(self, prompt: Prompt, query: str = None):
         features = self.tokenizer([prompt.to_text()], return_tensors='pt')
@@ -62,8 +62,9 @@ class T5WS():
                 optimizer.zero_grad()
 
                 with LightwoodAutocast():
-                    predictions = self.model(input_ids=batch['input_ids'], 
-                                             attention_mask=batch['attention_mask'], labels=batch['labels'])
+                    predictions = self.model(input_ids=batch['input_ids'].cuda(),
+                                             attention_mask=batch['attention_mask'].cuda(),
+                                             labels=batch['labels'].cuda())
                     loss = predictions[0]
 
                 total_loss.append(loss.item())
