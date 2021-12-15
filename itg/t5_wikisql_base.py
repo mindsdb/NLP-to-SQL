@@ -1,5 +1,6 @@
 from typing import Tuple, List
 from transformers import AutoModelWithLMHead, AutoTokenizer
+from transformers import T5Tokenizer, T5ForConditionalGeneration
 from controllers import Prompt
 from transformers import AdamW, get_linear_schedule_with_warmup
 from torch.utils.data import Dataset, DataLoader
@@ -16,10 +17,11 @@ class T5WSDataset(Dataset):
         for item in data:
             features, output = t5ws._prepare(item['prompt'], item['completion'])
             self.data.append({
-                'input_ids': features['input_ids'],
-                'attention_mask': features['attention_mask'],
-                'labels': output
+                'input_ids': features['input_ids'].cuda(),
+                'attention_mask': features['attention_mask'].cuda()
             })
+            if output is not None:
+                self.data[-1]['labels'] = output.cuda()
 
     def __len__(self):
         return len(self.data)
@@ -30,15 +32,17 @@ class T5WSDataset(Dataset):
 
 class T5WS():
     def __init__(self):
-        self.tokenizer = AutoTokenizer.from_pretrained("mrm8488/t5-base-finetuned-wikiSQL")
-        self.model = AutoModelWithLMHead.from_pretrained("mrm8488/t5-base-finetuned-wikiSQL").cuda()
-
+        # self.tokenizer = AutoTokenizer.from_pretrained("mrm8488/t5-base-finetuned-wikiSQL")
+        # self.model = AutoModelWithLMHead.from_pretrained("mrm8488/t5-base-finetuned-wikiSQL").cuda()
+        self.tokenizer = T5Tokenizer.from_pretrained("t5-small")
+        self.model = T5ForConditionalGeneration.from_pretrained("t5-small").cuda()
+        
     def _prepare(self, prompt: Prompt, query: str = None):
         features = self.tokenizer([prompt.to_text()], return_tensors='pt',
-                                  truncation=True, padding='longest', max_length=512)
+                                  truncation=True, padding='max_length', max_length=512)
         output = None
         if query is not None:
-            output = self.tokenizer([query], return_tensors='pt', truncation=True, padding='longest', max_length=512)
+            output = self.tokenizer([query], return_tensors='pt', truncation=True, padding='max_length', max_length=512)
             output = output['input_ids']
             output = [[(label if label != self.tokenizer.pad_token_id else -100)
                        for label in labels_example] for labels_example in output]
@@ -52,7 +56,7 @@ class T5WS():
 
     def train(self, training_data: List[Tuple[Prompt, str]]):
         ds = T5WSDataset(self, training_data)
-        dl = DataLoader(ds, batch_size=1, shuffle=True)
+        dl = DataLoader(ds, batch_size=4, shuffle=True)
 
         parameters = self.model.parameters()
         optimizer = AdamW(parameters, lr=1e-5)
@@ -68,12 +72,7 @@ class T5WS():
                 optimizer.zero_grad()
 
                 with LightwoodAutocast():
-                    predictions = self.model(batch['input_ids'].cuda(),
-                                             attention_mask=batch['attention_mask'].cuda(),
-                                             # decoder_input_ids=decoder_input_ids,
-                                             # decoder_attention_mask=decoder_attention_mask,
-                                             # lm_labels=lm_labels,
-                                             labels=batch['labels'].cuda())
+                    predictions = self.model(**batch)
                     loss = predictions[0]
 
                 total_loss.append(loss.item())
