@@ -91,7 +91,6 @@ def sparc_to_prompt() -> TrainData:
             if not is_simple_query(real_query):
                 continue
             question = interaction['utterance']
-            print(db_data)
             prompt = Prompt(db_create=db_data, question=question)
             stringified_prompt = prompt.to_text()
             if len(stringified_prompt) > MAX_TRAIN_LENGTH:
@@ -170,7 +169,7 @@ def train_openai():
         elif prompt_fmt == 'text':
             stringified_data = [{'prompt': x['prompt'].to_text(), 'completion': x['completion']} for x in training_data]
 
-        train_file = f'train_file_{prompt_fmt}_{n_epochs}'
+        train_file = f'train_file_{prompt_fmt}_{n_epochs}_{learning_rate_multiplier}'
         with open(train_file, 'w') as fp:
             fp.write('\n'.join([json.dumps(x) for x in stringified_data]))
 
