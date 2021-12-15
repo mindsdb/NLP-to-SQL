@@ -5,6 +5,7 @@ from transformers import AdamW, get_linear_schedule_with_warmup
 from torch.utils.data import Dataset, DataLoader
 from lightwood.helpers.torch import LightwoodAutocast
 import numpy as np
+import torch
 
 
 class T5WSDataset(Dataset):
@@ -33,10 +34,15 @@ class T5WS():
         self.model = AutoModelWithLMHead.from_pretrained("mrm8488/t5-base-finetuned-wikiSQL").cuda()
 
     def _prepare(self, prompt: Prompt, query: str = None):
-        features = self.tokenizer([prompt.to_text()], return_tensors='pt', padding=True)
+        features = self.tokenizer([prompt.to_text()], return_tensors='pt',
+                                  truncation=True, padding='longest', max_length=512)
         output = None
         if query is not None:
-            output = self.tokenizer([query], return_tensors='pt', padding=True)
+            output = self.tokenizer([query], return_tensors='pt', truncation=True, padding='longest', max_length=512)
+            output = output['input_ids']
+            output = [[(label if label != self.tokenizer.pad_token_id else -100)
+                       for label in labels_example] for labels_example in output]
+            output = torch.tensor(output)
         return features, output
 
     def __call__(self, prompt: Prompt) -> str:
@@ -46,7 +52,7 @@ class T5WS():
 
     def train(self, training_data: List[Tuple[Prompt, str]]):
         ds = T5WSDataset(self, training_data)
-        dl = DataLoader(ds, batch_size=8, shuffle=True)
+        dl = DataLoader(ds, batch_size=1, shuffle=True)
 
         parameters = self.model.parameters()
         optimizer = AdamW(parameters, lr=1e-5)
@@ -73,4 +79,4 @@ class T5WS():
                 optimizer.step()
                 scheduler.step()
                 print(f'Current total loss: {np.mean(total_loss)} | Current epoch: {epoch}')
-            print(f'\nTotal loss at end of epoch {epoch}: {np.mean(total_loss)} !\n')   
+            print(f'\nTotal loss at end of epoch {epoch}: {np.mean(total_loss)} !\n')
