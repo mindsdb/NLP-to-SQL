@@ -68,8 +68,11 @@ class T5WS():
                 optimizer.zero_grad()
 
                 with LightwoodAutocast():
-                    predictions = self.model(input_ids=batch['input_ids'].cuda(),
+                    predictions = self.model(batch['input_ids'].cuda(),
                                              attention_mask=batch['attention_mask'].cuda(),
+                                             # decoder_input_ids=decoder_input_ids,
+                                             # decoder_attention_mask=decoder_attention_mask,
+                                             # lm_labels=lm_labels,
                                              labels=batch['labels'].cuda())
                     loss = predictions[0]
 
