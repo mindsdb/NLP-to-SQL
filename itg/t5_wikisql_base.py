@@ -33,10 +33,10 @@ class T5WS():
         self.model = AutoModelWithLMHead.from_pretrained("mrm8488/t5-base-finetuned-wikiSQL").cuda()
 
     def _prepare(self, prompt: Prompt, query: str = None):
-        features = self.tokenizer([prompt.to_text()], return_tensors='pt')
+        features = self.tokenizer([prompt.to_text()], return_tensors='pt', padding=True)
         output = None
         if query is not None:
-            output = self.tokenizer([query], return_tensors='pt')
+            output = self.tokenizer([query], return_tensors='pt', padding=True)
         return features, output
 
     def __call__(self, prompt: Prompt) -> str:
