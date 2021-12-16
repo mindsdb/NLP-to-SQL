@@ -1,3 +1,4 @@
+from copy import deepcopy
 from re import M
 from typing import Tuple, List
 from transformers import AutoModelWithLMHead, AutoTokenizer
@@ -19,8 +20,8 @@ class T5WSDataset(Dataset):
         outputs = t5ws.tokenizer([x['completion'] for x in data], return_tensors='pt', truncation=True, padding=True)
         self.decoder_attention_mask = outputs['attention_mask']
         outputs = outputs['input_ids']
-        outputs = [[(label if label != t5ws.tokenizer.pad_token_id else -100)
-                    for label in labels_example] for labels_example in outputs]
+        # outputs = [[(label if label != t5ws.tokenizer.pad_token_id else -100)
+        #            for label in labels_example] for labels_example in outputs]
         outputs = torch.tensor(outputs)
         self.features = features
         self.outputs = outputs
@@ -33,8 +34,8 @@ class T5WSDataset(Dataset):
             'input_ids': self.features['input_ids'][index],
             'attention_mask': self.features['attention_mask'][index],
             'labels': self.outputs[index],
-            'decoder_input_ids': self.outputs[index],  # Still not sure this works or helps
-            'decoder_attention_mask': self.decoder_attention_mask[index]  # Still not sure this works or helps
+            #'decoder_input_ids': self.outputs[index],  # Still not sure this works or helps
+            #'decoder_attention_mask': self.decoder_attention_mask[index]  # Still not sure this works or helps
         }
         return batch_sample
 
@@ -44,12 +45,12 @@ class T5WS():
         self.tokenizer = AutoTokenizer.from_pretrained("mrm8488/t5-base-finetuned-wikiSQL")
         self.model = AutoModelWithLMHead.from_pretrained("mrm8488/t5-base-finetuned-wikiSQL").cuda()
         # self.tokenizer = T5Tokenizer.from_pretrained("t5-small")
-        # self.model = T5ForConditionalGeneration.from_pretrained("t5-small").cuda()
+        # self.model = T5ForConditionalGeneration.from_pretrained("t5-small").cuda()f
 
     def __call__(self, prompt: Prompt) -> str:
         features = self.tokenizer([prompt.to_text()], return_tensors='pt', truncation=True, padding=True)
         output = self.model.generate(input_ids=features['input_ids'].cuda(),
-                                     attention_mask=features['attention_mask'].cuda())
+                                     attention_mask=features['attention_mask'] .cuda())
         return self.tokenizer.decode(output[0])
 
     def train(self, training_data: List[Tuple[Prompt, str]]):
@@ -84,11 +85,12 @@ class T5WS():
                 with LightwoodAutocast():
                     predictions = self.model(**batch)
                     loss = predictions[0]
-                total_loss.append(loss.item())
 
                 loss.backward()
                 optimizer.step()
-                # scheduler.step()
+                scheduler.step()
+                total_loss.append(loss.item())
+
                 print(f'Current total loss: {np.mean(total_loss)} | Current epoch: {epoch} [Step {step} - \
 {round(100 * (batch_size * step) / len(dst), 2)}% done]')
             print(f'\nTotal loss at end of epoch {epoch}: {np.mean(total_loss)} !\n')
