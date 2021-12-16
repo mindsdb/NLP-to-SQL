@@ -40,3 +40,13 @@ Setting up and fine-tuning GPT-J also seems non trivial (I assume it generalizes
 - The best path forward to getting reasonable "simple" sql seems to be trying to custom-train a hugging-face model ala T5-11B on large GPUs with SPDIDER + SPARC + WIKITEXT + maybe a few more. Using the current processing techniques for minimizing input size to make it suitable for transformers + select only the easiest queries.
 - To deal with large database sizes it seems reasonable to train a "Summarization" model that takes metadata about the schema + the user text query and figures out the relevant tables for it, rather than the sql-query. This would help overcomes the tiny-inputs limitation.
 - To gain the final bits of improvement it probably makes sense to add heuristics around query-evaluation (i.e. once a model gives an output try to "extract" a valid sql query from it which adheres to the known columns + tables in the current database => if you can't, ask for another prediction and loop this => If nothing valid is generated, report and error). Given current performance + poor results on ladderboard for text to SQL we probably need all the help we can get here, and focusing on simple queries + evaluation heuristics might get us to the necessary accuracy.
+
+## Open threads
+
+Mainly useful in case someone else takes this over.
+Currently I have some questions I'm waiting answers to laid out in these threads:
+- https://stackoverflow.com/questions/70358307/how-to-train-hugging-face-models-with-an-lm-head
+- https://stackoverflow.com/questions/70374173/how-to-avoid-huggingface-t5-based-seq-to-seq-suddenly-reaching-a-loss-of-nan-a
+- https://discuss.huggingface.co/t/training-t5-based-seq-to-seq-suddenly-reaches-loss-of-nan-and-starts-predicting-only-pad/12884/2
+- https://discuss.huggingface.co/t/extremely-confusing-or-non-existent-documentation-about-the-seq2seq-trainer/12880
+As well as an email thread with nlpcloud about fine-tuning (will add it here later)
