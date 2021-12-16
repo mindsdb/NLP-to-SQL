@@ -55,8 +55,8 @@ class T5WS():
         self.best_accuracy = -pow(2, 63)
 
     def save(self, epoch: int):
-        self.best_model.save_pretrained(f'itg/weights/t5-base-mindsdb-sqlizer-{epoch}')
-        self.tokenizer.save_pretrained(f'itg/weights/t5-base-mindsdb-sqlizer-{epoch}')
+        self.best_model.save_pretrained(f'weights/t5-base-mindsdb-sqlizer-{epoch}')
+        self.tokenizer.save_pretrained(f'weights/t5-base-mindsdb-sqlizer-{epoch}')
 
     def __call__(self, prompt: Prompt) -> str:
         features = self.tokenizer([prompt.to_text()], return_tensors='pt', truncation=True, padding=True)
