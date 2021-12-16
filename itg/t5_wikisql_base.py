@@ -35,7 +35,7 @@ class T5WSDataset(Dataset):
             'attention_mask': self.features['attention_mask'][index],
             'labels': self.outputs[index],
             #'decoder_input_ids': self.outputs[index],  # Still not sure this works or helps
-            #'decoder_attention_mask': self.decoder_attention_mask[index]  # Still not sure this works or helps
+            'decoder_attention_mask': self.decoder_attention_mask[index]  # Still not sure this works or helps
         }
         return batch_sample
 
