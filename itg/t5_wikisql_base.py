@@ -37,7 +37,7 @@ class T5WS():
         self.model = AutoModelWithLMHead.from_pretrained("mrm8488/t5-base-finetuned-wikiSQL").cuda()
         # self.tokenizer = T5Tokenizer.from_pretrained("t5-small")
         # self.model = T5ForConditionalGeneration.from_pretrained("t5-small").cuda()
-        
+
     def _prepare(self, prompt: Prompt, query: str = None):
         features = self.tokenizer([prompt.to_text()], return_tensors='pt',
                                   truncation=True, padding='max_length', max_length=512)
@@ -85,6 +85,7 @@ class T5WS():
                 with LightwoodAutocast():
                     predictions = self.model(**batch)
                     loss = predictions[0]
+                    print(predictions[1], batch['labels'])
 
                 total_loss.append(loss.item())
 
@@ -92,7 +93,7 @@ class T5WS():
                 optimizer.step()
                 scheduler.step()
                 print(f'Current total loss: {np.mean(total_loss)} | Current epoch: {epoch} [Step {step},\
-                    {round(100 * (batch_size * step) / len(dst), 2)}% done]')
+{round(100 * (batch_size * step) / len(dst), 2)}% done]')
             print(f'\nTotal loss at end of epoch {epoch}: {np.mean(total_loss)} !\n')
 
             self.model = self.model.eval()

@@ -3,10 +3,11 @@ from controllers import ITG, Prompt
 import json
 import os
 from typing import List
-from itg.constant import OPEN_AI_API_KEY, BASE_MODEL, MAX_TRAIN_LENGTH, TRAIN_ON
+from itg.constant import OPEN_AI_API_KEY, BASE_MODEL, MAX_TRAIN_LENGTH, TRAIN_ON, TEST_ON, NLPC_TOKEN
 from t5_wikisql_base import T5WS
 import pickle
 from simple_ddl_parser import DDLParser
+import requests
 
 
 itg = ITG()
@@ -112,7 +113,7 @@ def sparc_to_prompt() -> TrainData:
 
 def spider_to_prompt():
     try:
-        data = pickle.load(open(f'spider_{TRAIN_ON}.pickle', 'rb'))
+        data = pickle.load(open(f'spider_{TEST_ON}.pickle', 'rb'))
         print(f'Loaded cached data of length {len(data)}')
         return data
     except Exception as e:
@@ -141,11 +142,11 @@ def spider_to_prompt():
 
         data.append({'prompt': prompt, 'completion': real_query})
 
-        if len(data) > TRAIN_ON:
-            with open(f'spider_{TRAIN_ON}.pickle', 'wb') as fp:
+        if len(data) > TEST_ON:
+            with open(f'spider_{TEST_ON}.pickle', 'wb') as fp:
                 pickle.dump(data, fp)
             return data
-    with open(f'spider_{TRAIN_ON}.pickle', 'wb') as fp:
+    with open(f'spider_{TEST_ON}.pickle', 'wb') as fp:
         pickle.dump(data, fp)
     return data
 
@@ -190,29 +191,30 @@ def test_openai():
     models = [(x['fine_tuned_model'], x['training_files'][0]['filename']) for x in result
               if x['fine_tuned_model'] is not None
               and ('2021-12-15' in x['fine_tuned_model']
-              or '2021-12-15' in x['fine_tuned_model'])]
-
+              or '2021-12-15' in x['fine_tuned_model'])
+              and len(x['training_files'][0]['filename'].split('_')) == 5]
+    print(f'Testing with models: {models}')
     for model_name, train_file in models:
         fmt = 'text' if '_text_' in train_file else 'unknown'
-        fmt = 'json' if '_json_' in train_file else 'unknown'
+        if fmt == 'unknown':
+            fmt = 'json' if '_json_' in train_file else 'unknown'
         nr_correct = 0
         nr_incorrect = 0
-        for item in testing_data[0:50]:
+        for item in testing_data:
             prompt = item['prompt']
             real_query = item['completion']
             itg = ITG(model_name, fmt)
+            print('Sending query')
             itg.register(prompt.db_create)
             response = itg(prompt.question)
             predicted_query = response.query
             correct = predicted_query.lower() == real_query.lower()
 
-            '''
             print(f"""
 Predicted query: {predicted_query}
 Real query: {real_query}
 Correct: {correct}
             """)
-            '''
 
             if correct:
                 nr_correct += 1
@@ -230,7 +232,65 @@ def train_t5ws():
     model = T5WS()
     model.train(training_data)
 
+
+def train_nlpc():
+    training_data = sparc_to_prompt()
+    print(f'Train data length: {len(training_data)}')
+
+    training_text = ''
+    for item in training_data:
+        training_text += f'\n[Query]:{item["prompt"].to_text()}\n'
+        training_text += f'[SQL]:{item["completion"]}\n'
+        training_text += '###\n\n<|endoftext|>'
+    with open('train_file_nlpcloud.txt', 'w') as fp:
+        fp.write(training_text)
+    print(f'Aaahm, done? I think we literally have to mail this manually o.o')
+
+
+def test_nlpc():
+    testing_data = spider_to_prompt()
+    print(f'Test data length: {len(testing_data)}')
+
+    nr_correct = 0
+    nr_incorrect = 0
+    for item in testing_data:
+        prompt = item['prompt'].to_text()
+        real_query = item['completion']
+
+        resp = requests.post('https://api.nlpcloud.io/v1/gpu/gpt-j/generation',
+                             headers={
+                                 'Authorization': f'Token {NLPC_TOKEN}',
+                                 'Content-Type': 'application/json',
+                             },
+                             data={
+                                 'text': f'[Query]:{prompt}\n[SQL]:',
+                                 'min_length': 10,
+                                 'max_length': 100
+                             }
+                             )
+        print(resp.text)
+        predicted_query = resp.text
+        correct = predicted_query.lower() == real_query.lower()
+
+        print(f"""
+Predicted query: {predicted_query}
+Real query: {real_query}
+Correct: {correct}
+        """)
+
+        if correct:
+            nr_correct += 1
+        else:
+            nr_incorrect += 1
+
+    print(f'Number of incorrect observations: {nr_incorrect}')
+    print(f'Number of correct observations: {nr_correct}')
+
+
 if __name__ == '__main__':
+    exit()
     # train_openai()
     # test_openai()
-    train_t5ws()
+    # train_t5ws()
+    # test_nlpc()
+    # train_nlpc()

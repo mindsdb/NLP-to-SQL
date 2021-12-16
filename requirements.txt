@@ -2,7 +2,7 @@ openai
 pandas
 dfsql
 dataclasses_json
-transformers[sentencepiece]
+transformers[sentencepiece]>=4.14.1
 lightwood
 torch
 simple_ddl_parser

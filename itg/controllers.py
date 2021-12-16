@@ -69,10 +69,7 @@ class ITG:
         """
         openai.api_key = OPEN_AI_API_KEY
 
-        prompt = Prompt.from_dict({
-            'db_create': self.table_arr,
-            'question': question
-        })
+        prompt = Prompt(db_create=self.table_arr, question=question)
 
         if self.fmt == 'json':
             str_prompt = prompt.to_json()
@@ -85,10 +82,10 @@ class ITG:
             model=self.model_name,
             prompt=str_prompt,
             temperature=0,  # As to not have a lot of randomness
-            max_tokens=len(question) * 5,
+            max_tokens=len(question) * 3,
             top_p=1,
-            frequency_penalty=0,
-            presence_penalty=0,
+            frequency_penalty=2,
+            presence_penalty=0.5,
             stop=["\n"],
             n=1,  # Right now we don't really have any good search criteria so just ask for 1
             best_of=2

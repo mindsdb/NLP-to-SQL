@@ -4,3 +4,7 @@ __MACOSX
 *__pycache__*
 train_file*
 *pickle
+openai_out.txt
+*out.txt
+itg/hft
+itf/hft/*
