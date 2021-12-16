@@ -1,5 +1,4 @@
 from copy import deepcopy
-from re import M
 from typing import Tuple, List
 from transformers import AutoModelWithLMHead, AutoTokenizer
 from itg.types import Prompt
@@ -15,14 +14,16 @@ from lightwood.helpers.device import get_devices
 class T5WSDataset(Dataset):
     def __init__(self, t5ws, data):
         super(T5WSDataset).__init__()
-        features = t5ws.tokenizer([x['prompt'].to_text() for x in data], return_tensors='pt', truncation=True, padding=True)
-        outputs = t5ws.tokenizer([x['completion'] for x in data], return_tensors='pt', truncation=True, padding=True)
+        features = t5ws.tokenizer([x['prompt'].to_text() for x in data], return_tensors='pt', truncation=True,
+                                  padding=True)
+        outputs = t5ws.tokenizer([x['completion'] for x in data], return_tensors='pt', truncation=True,
+                                 padding=True)
         self.decoder_attention_mask = outputs['attention_mask']
         outputs = outputs['input_ids']
         outputs = torch.tensor(outputs)
         self.features = features
         self.outputs = outputs
-        
+
     def __len__(self):
         return len(self.features['input_ids'])
 
@@ -67,11 +68,11 @@ class T5WS():
         nr_epochs = 200
         batch_size = 8
         self.best_model = deepcopy(self.model.cpu())
-        
+
         ds_train = T5WSDataset(self, training_data[:int(len(training_data) * 0.8)])
         print(f'Train data length: {len(ds_train)}')
         dlt = DataLoader(ds_train, batch_size=batch_size, shuffle=True)
-        ds_eval = training_data[int(len(training_data) * 0.8):]        
+        ds_eval = training_data[int(len(training_data) * 0.8):]
         parameters = self.model.parameters()
         optimizer = AdamW(parameters, lr=1e-5)
         scheduler = get_linear_schedule_with_warmup(
@@ -94,7 +95,7 @@ class T5WS():
                 with LightwoodAutocast():
                     predictions = self.model(**batch)
                     loss = predictions[0]
-                
+
                 nl = loss.item()
                 if 'nan' in str(nl).lower():
                     print('Got a loss equal to nan, skipping this one!')
@@ -123,12 +124,14 @@ class T5WS():
         for item in ds_eval:
             with torch.no_grad():
                 with LightwoodAutocast():
-                    predicted_completion = self(item['prompt']).replace('</s>', '').replace('<pad>', '').lstrip(' ').rstrip(' ')
+                    predicted_completion = self(item['prompt']).replace(
+                        '</s>', '').replace('<pad>', '').lstrip(' ').rstrip(' ')
                     real_completion = item['completion']
 
                     if predicted_completion.lower() == real_completion.lower():
                         correct += 1
                     if random.randint(0, 50) == 5:
-                        print(f'[Illustrative Sample]\nInput: {item["prompt"].to_text()}\nPredicted: "{predicted_completion}"\nReal: "{real_completion}"')
+                        print(f'[Illustrative Sample]\nInput: {item["prompt"].to_text()}')
+                        print(f'Predicted: "{predicted_completion}"\nReal: "{real_completion}"')
         print(f'\n\nModel was correct for {correct} queries ({round(100 * correct / total, 2)}%)\n\n')
         return correct / total

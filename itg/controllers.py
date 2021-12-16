@@ -123,5 +123,4 @@ class ITG_OpenAI(ITG_Base):
         return itg_response
 
 
-
 ITG = ITG_T5WS

@@ -41,7 +41,6 @@ class Prompt:
         return json.dumps(self.to_dict())
 
 
-
 @dataclass
 class Response:
     """

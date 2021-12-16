@@ -252,7 +252,7 @@ def train_nlpc():
         training_text += '###\n\n<|endoftext|>'
     with open('train_file_nlpcloud.txt', 'w') as fp:
         fp.write(training_text)
-    print(f'Aaahm, done? I think we literally have to mail this manually o.o')
+    print('Aaahm, done? I think we literally have to mail this manually o.o')
 
 
 def test_nlpc():
