@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Dict, Union
 from dataclasses import dataclass
 import pandas as pd
 import json
@@ -49,4 +49,7 @@ class Response:
     """
     query: str
     result: Optional[pd.DataFrame]
+
+
+TrainData = List[Dict[str, Union[Prompt, str]]]
 

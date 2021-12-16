@@ -1,7 +1,7 @@
 from copy import deepcopy
-from typing import Tuple, List
+from typing import Dict
 from transformers import AutoModelWithLMHead, AutoTokenizer
-from itg.types import Prompt
+from itg.types import Prompt, TrainData
 from transformers import AdamW, get_linear_schedule_with_warmup
 from torch.utils.data import Dataset, DataLoader
 from lightwood.helpers.torch import LightwoodAutocast
@@ -12,7 +12,7 @@ from lightwood.helpers.device import get_devices
 
 
 class T5WSDataset(Dataset):
-    def __init__(self, t5ws, data):
+    def __init__(self, t5ws: object, data: TrainData):
         super(T5WSDataset).__init__()
         features = t5ws.tokenizer([x['prompt'].to_text() for x in data], return_tensors='pt', truncation=True,
                                   padding=True)
@@ -27,7 +27,7 @@ class T5WSDataset(Dataset):
     def __len__(self):
         return len(self.features['input_ids'])
 
-    def __getitem__(self, index) -> Tuple[object, object]:
+    def __getitem__(self, index: int) -> Dict[str, torch.Tensor]:
         batch_sample = {
             'input_ids': self.features['input_ids'][index],
             'attention_mask': self.features['attention_mask'][index],
@@ -42,9 +42,11 @@ class T5WS():
     def __init__(self, save_path: str = None):
         self.device = get_devices()[0]
         if save_path is None:
+            print('Save path not provided, initializing untrained model')
             self.tokenizer = AutoTokenizer.from_pretrained("mrm8488/t5-base-finetuned-wikiSQL")
             self.model = AutoModelWithLMHead.from_pretrained("mrm8488/t5-base-finetuned-wikiSQL")
         else:
+            print(f'Initializing model and tokenizer from: {save_path}')
             self.tokenizer = AutoTokenizer.from_pretrained(save_path)
             self.model = AutoModelWithLMHead.from_pretrained(save_path)
 
@@ -62,7 +64,7 @@ class T5WS():
                                      attention_mask=features['attention_mask'] .to(self.device))
         return self.tokenizer.decode(output[0])
 
-    def train(self, training_data: List[Tuple[Prompt, str]]):
+    def train(self, training_data: TrainData):
         random.seed(4372373)
         random.shuffle(training_data)
         nr_epochs = 200
@@ -117,7 +119,7 @@ class T5WS():
 
         self.model = self.best_model.to(self.device)
 
-    def evaluate(self, ds_eval):
+    def evaluate(self, ds_eval: TrainData) -> float:
         self.model = self.model.eval()
         correct = 0
         total = len(ds_eval)

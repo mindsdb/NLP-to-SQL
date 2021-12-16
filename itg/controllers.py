@@ -12,6 +12,9 @@ class ITG_Base:
     def __init__(self) -> None:
         self.table_arr = []
 
+    def __call__(self, question: str, database_connection: Any = None) -> Response:
+        raise NotImplementedError
+
     def register(self, db_tables: Union[List[str], List[Tuple[pd.DataFrame, str]], Tuple[pd.DataFrame, str]]) -> None:
         """
         :param db_tables: A list of the CREATE statements for all the queries in the database

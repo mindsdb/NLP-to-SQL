@@ -1,18 +1,13 @@
-from typing import Dict
-from itg.controllers import ITG
+from itg.controllers import ITG_OpenAI
 from itg.types import Prompt
 import json
 import os
-from typing import List
+from itg.types import TrainData
 from itg.constant import OPEN_AI_API_KEY, BASE_MODEL, MAX_TRAIN_LENGTH, TRAIN_ON, TEST_ON, NLPC_TOKEN
 from t5_wikisql_base import T5WS
 import pickle
 from simple_ddl_parser import DDLParser
 import requests
-
-
-itg = ITG()
-TrainData = List[Dict[Prompt, str]]
 
 
 def parse_db_file(name: str) -> str:
@@ -48,7 +43,7 @@ def parse_db_file(name: str) -> str:
 
 
 # Try to only train on and take into consideration simple queries for now
-def is_simple_query(query):
+def is_simple_query(query: str) -> bool:
     complicated = False
 
     lq = query.lower()
@@ -112,7 +107,7 @@ def sparc_to_prompt() -> TrainData:
     return data
 
 
-def spider_to_prompt():
+def spider_to_prompt() -> TrainData:
     try:
         data = pickle.load(open(f'spider_{TEST_ON}.pickle', 'rb'))
         print(f'Loaded cached data of length {len(data)}')
@@ -204,7 +199,7 @@ def test_openai():
         for item in testing_data:
             prompt = item['prompt']
             real_query = item['completion']
-            itg = ITG(model_name, fmt)
+            itg = ITG_OpenAI(model_name, fmt)
             print('Sending query')
             itg.register(prompt.db_create)
             response = itg(prompt.question)
@@ -227,7 +222,7 @@ Correct: {correct}
         print(f'Number of correct observations: {nr_correct}')
 
 
-def train_t5ws():
+def train_t5ws() -> T5WS:
     training_data = sparc_to_prompt()
     print(f'Train data length: {len(training_data)}')
     model = T5WS()
@@ -235,7 +230,7 @@ def train_t5ws():
     return model
 
 
-def test_t5ws(model):
+def test_t5ws(model: T5WS):
     testing_data = spider_to_prompt()
     print(f'Train data length: {len(testing_data)}')
     model.evaluate(testing_data)
