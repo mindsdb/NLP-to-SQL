@@ -88,9 +88,9 @@ class T5WS():
                 
                 nl = loss.item()
                 if 'nan' in str(nl).lower():
-                    print('Got a loss equal to nan!')
+                    print('Got a loss equal to nan, skipping this one!')
                     optimizer.zero_grad()
-                    break
+                    continue
                 total_loss.append(nl)
                 loss.backward()
                 optimizer.step()
