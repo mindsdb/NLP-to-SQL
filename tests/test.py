@@ -14,29 +14,31 @@ sales = pd.DataFrame({
 
 itg.register((sales, 'sales'))
 
-for i in range(10):
+for i in range(1):
     print('\n\n\n\n')
     try:
         ask = 'How much money did we make for each product?'
-        result = itg(ask)
-        print(f'We asked: {ask}\nGot the query: {result.query}')
-        query_result = sql_query(result.query, sales=sales)
-        print(f'Using the query we got: {query_result}')
-
-        ask = 'How many items did each shop sell?'
-        result = itg(ask)
-        print(f'We asked: {ask}\nGot the query: {result.query}')
-        query_result = sql_query(result.query, sales=sales)
-        print(f'Using the query we got: {query_result}')
+        result1 = itg(ask)
+        print(f'We asked: {ask}\nGot the query: {result1.query}')
 
         ask = 'How much money did each store earn every day?'
-        result = itg(ask)
-        print(f'We asked: {ask}\nGot the query: {result.query}')
-        query_result = sql_query(result.query, sales=sales)
-        print(f'Using the query we got: {query_result}')
+        result2 = itg(ask)
+        print(f'We asked: {ask}\nGot the query: {result2.query}')
+
+        ask = 'How many items did each shop sell?'
+        result3 = itg(ask)
+        print(f'We asked: {ask}\nGot the query: {result3.query}')
+
+        query_result = sql_query(result1.query, sales=sales)
+        print(f'Using the first query we got: {query_result}')
+
+        query_result = sql_query(result2.query, sales=sales)
+        print(f'Using the second query we got: {query_result}')
+
+        query_result = sql_query(result3.query, sales=sales)
+        print(f'Using the third query we got: {query_result}')
 
         print(f'Got all queries to execute after {i+1} attempts!')
         break
     except Exception as e:
         print(f'Iteration failed with error: {e}')
-        pass

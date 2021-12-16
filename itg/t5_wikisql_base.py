@@ -62,7 +62,11 @@ class T5WS():
         features = self.tokenizer([prompt.to_text()], return_tensors='pt', truncation=True, padding=True)
         output = self.model.generate(input_ids=features['input_ids'].to(self.device),
                                      attention_mask=features['attention_mask'] .to(self.device))
-        return self.tokenizer.decode(output[0])
+        return self.tokenizer.decode(
+            output[0]).replace(
+            '</s>', '').replace(
+            '<pad>', '').replace(
+            '<unk>', '').lstrip(' ').rstrip(' ')
 
     def train(self, training_data: TrainData):
         random.seed(4372373)
@@ -126,8 +130,7 @@ class T5WS():
         for item in ds_eval:
             with torch.no_grad():
                 with LightwoodAutocast():
-                    predicted_completion = self(item['prompt']).replace(
-                        '</s>', '').replace('<pad>', '').lstrip(' ').rstrip(' ')
+                    predicted_completion = self(item['prompt'])
                     real_completion = item['completion']
 
                     if predicted_completion.lower() == real_completion.lower():

@@ -47,16 +47,18 @@ class ITG_Base:
                 sql_type = 'DATETIME'
             else:
                 sql_type = 'DATE'
-            create_query += f'\n{col} {sql_type}'
-        create_query += '\n)'
+            create_query += f'\n{col} {sql_type},'
+        create_query = create_query.rstrip(',')
+        create_query += '\n);'
 
         return create_query
 
 
 class ITG_T5WS(ITG_Base):
     def __init__(self) -> None:
-        super().__init__()
+        super(ITG_T5WS).__init__()
         self.model = T5WS(T5WS_WEIGHTS)
+        self.table_arr = []
 
     def __call__(self, question: str, database_connection: Any = None) -> Response:
         """
@@ -81,9 +83,10 @@ class ITG_OpenAI(ITG_Base):
     table_arr: List[str]
 
     def __init__(self, model_name=MODEL_NAME, fmt='json') -> None:
-        super().__init__()
+        super(ITG_OpenAI).__init__()
         self.model_name = model_name
         self.fmt = fmt
+        self.table_arr = []
 
     def __call__(self, question: str, database_connection: Any = None) -> Response:
         """
