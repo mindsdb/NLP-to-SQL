@@ -17,6 +17,7 @@ class T5WSDataset(Dataset):
 
         features = t5ws.tokenizer([x['prompt'].to_text() for x in data], return_tensors='pt', truncation=True, padding=True)
         outputs = t5ws.tokenizer([x['completion'] for x in data], return_tensors='pt', truncation=True, padding=True)
+        self.decoder_attention_mask = outputs['attention_mask']
         outputs = outputs['input_ids']
         outputs = [[(label if label != t5ws.tokenizer.pad_token_id else -100)
                     for label in labels_example] for labels_example in outputs]
@@ -31,7 +32,9 @@ class T5WSDataset(Dataset):
         batch_sample = {
             'input_ids': self.features['input_ids'][index],
             'attention_mask': self.features['attention_mask'][index],
-            'labels': self.outputs[index]
+            'labels': self.outputs[index],
+            'decoder_input_ids': self.outputs[index],  # Still not sure this works or helps
+            'decoder_attention_mask': self.decoder_attention_mask[index]  # Still not sure this works or helps
         }
         return batch_sample
 
@@ -53,7 +56,7 @@ class T5WS():
         random.seed(14212)
         random.shuffle(training_data)
         nr_epochs = 20
-        batch_size = 16
+        batch_size = 8
 
         dst = T5WSDataset(self, training_data[:int(len(training_data) * 0.8)])
         print(f'Train data length: {len(dst)}')
@@ -67,7 +70,7 @@ class T5WS():
             num_warmup_steps=30,
             num_training_steps=len(dst) * nr_epochs,
         )
-        
+
         for epoch in range(nr_epochs):
             total_loss = []
             self.model = self.model.train()
