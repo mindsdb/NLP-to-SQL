@@ -57,7 +57,7 @@ class T5WS():
         random.seed(14212)
         random.shuffle(training_data)
         nr_epochs = 20
-        batch_size = 8
+        batch_size = 16
 
         dst = T5WSDataset(self, training_data[:int(len(training_data) * 0.8)])
         print(f'Train data length: {len(dst)}')
@@ -107,5 +107,5 @@ class T5WS():
                         if predicted_completion.lower() == real_completion.lower():
                             correct += 1
                         if random.randint(0, 50) == 5:
-                            print(f'[Illustrative Sample] Predicted: {predicted_completion}\nReal: {real_completion}')
+                            print(f'[Illustrative Sample]\nInput: {item["prompt"].to_text()}\nPredicted: "{predicted_completion}"\nReal: "{real_completion}"')
             print(f'\n\nModel was correct for {correct} queries ({100 * correct / total}%)\n\n')
