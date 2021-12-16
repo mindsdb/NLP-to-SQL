@@ -43,9 +43,9 @@ class T5WSDataset(Dataset):
 class T5WS():
     def __init__(self):
         self.tokenizer = AutoTokenizer.from_pretrained("mrm8488/t5-base-finetuned-wikiSQL")
-        self.model = AutoModelWithLMHead.from_pretrained("mrm8488/t5-base-finetuned-wikiSQL").cuda()
-        # self.tokenizer = T5Tokenizer.from_pretrained("t5-small")
-        # self.model = T5ForConditionalGeneration.from_pretrained("t5-small").cuda()
+        self.model = AutoModelWithLMHead.from_pretrained("mrm8488/t5-base-finetuned-wikiSQL")
+        self.best_model = deepcopy(self.model)
+        self.best_accuracy = -pow(2, 63)
 
     def __call__(self, prompt: Prompt) -> str:
         features = self.tokenizer([prompt.to_text()], return_tensors='pt', truncation=True, padding=True)
@@ -54,26 +54,26 @@ class T5WS():
         return self.tokenizer.decode(output[0])
 
     def train(self, training_data: List[Tuple[Prompt, str]]):
-        random.seed(14212)
+        random.seed(4372373)
         random.shuffle(training_data)
-        nr_epochs = 20
+        nr_epochs = 3
         batch_size = 8
 
-        dst = T5WSDataset(self, training_data[:int(len(training_data) * 0.8)])
-        print(f'Train data length: {len(dst)}')
-        dlt = DataLoader(dst, batch_size=batch_size, shuffle=True)
-        rawv = training_data[int(len(training_data) * 0.8):]
-
+        ds_train = T5WSDataset(self, training_data[:int(len(training_data) * 0.8)])
+        print(f'Train data length: {len(ds_train)}')
+        dlt = DataLoader(ds_train, batch_size=batch_size, shuffle=True)
+        ds_eval = training_data[int(len(training_data) * 0.8):]        
         parameters = self.model.parameters()
         optimizer = AdamW(parameters, lr=1e-5)
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
             num_warmup_steps=5,
-            num_training_steps=len(dst) * nr_epochs,
+            num_training_steps=len(ds_train) * nr_epochs,
         )
 
         for epoch in range(nr_epochs):
             total_loss = []
+            self.model = self.model.cuda()
             self.model = self.model.train()
             step = 0
             for batch in dlt:
@@ -97,20 +97,28 @@ class T5WS():
                 scheduler.step()
 
                 print(f'Current total loss: {np.mean(total_loss)} | Current epoch: {epoch} [Step {step} - \
-{round(100 * (batch_size * step) / len(dst), 2)}% done]')
+{round(100 * (batch_size * step) / len(ds_train), 2)}% done]')
             print(f'\nTotal loss at end of epoch {epoch}: {np.mean(total_loss)} !\n')
+            eval_acc = self.evaluate(ds_eval)
+            if eval_acc > self.best_accuracy:
+                print(f'New best model with evaluation accuracy of: {eval_acc}!')
+                self.best_model = deepcopy(self.model.cpu())
 
-            self.model = self.model.eval()
-            correct = 0
-            total = len(rawv)
-            for item in rawv:
-                with torch.no_grad():
-                    with LightwoodAutocast():
-                        predicted_completion = self(item['prompt']).replace('</s>', '').replace('<pad>', '').lstrip(' ').rstrip(' ')
-                        real_completion = item['completion']
+        self.model = self.best_model.cuda()
 
-                        if predicted_completion.lower() == real_completion.lower():
-                            correct += 1
-                        if random.randint(0, 50) == 5:
-                            print(f'[Illustrative Sample]\nInput: {item["prompt"].to_text()}\nPredicted: "{predicted_completion}"\nReal: "{real_completion}"')
-            print(f'\n\nModel was correct for {correct} queries ({100 * correct / total}%)\n\n')
+    def evaluate(self, ds_eval):
+        self.model = self.model.eval()
+        correct = 0
+        total = len(ds_eval)
+        for item in ds_eval:
+            with torch.no_grad():
+                with LightwoodAutocast():
+                    predicted_completion = self(item['prompt']).replace('</s>', '').replace('<pad>', '').lstrip(' ').rstrip(' ')
+                    real_completion = item['completion']
+
+                    if predicted_completion.lower() == real_completion.lower():
+                        correct += 1
+                    if random.randint(0, 50) == 5:
+                        print(f'[Illustrative Sample]\nInput: {item["prompt"].to_text()}\nPredicted: "{predicted_completion}"\nReal: "{real_completion}"')
+        print(f'\n\nModel was correct for {correct} queries ({round(100 * correct / total, 2)}%)\n\n')
+        return correct / total

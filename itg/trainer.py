@@ -231,6 +231,13 @@ def train_t5ws():
     print(f'Train data length: {len(training_data)}')
     model = T5WS()
     model.train(training_data)
+    return model
+
+
+def test_t5ws(model):
+    testing_data = spider_to_prompt()
+    print(f'Train data length: {len(testing_data)}')
+    model.evaluate(testing_data)
 
 
 def train_nlpc():
@@ -290,6 +297,7 @@ Correct: {correct}
 if __name__ == '__main__':
     # train_openai()
     # test_openai()
-    train_t5ws()
+    model = train_t5ws()
+    test_t5ws(model)
     # test_nlpc()
     # train_nlpc()
