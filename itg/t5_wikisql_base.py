@@ -56,7 +56,7 @@ class T5WS():
     def train(self, training_data: List[Tuple[Prompt, str]]):
         random.seed(4372373)
         random.shuffle(training_data)
-        nr_epochs = 3
+        nr_epochs = 50
         batch_size = 8
 
         ds_train = T5WSDataset(self, training_data[:int(len(training_data) * 0.8)])
