@@ -1,7 +1,7 @@
 from typing import Any, List, Tuple, Union
 import openai
 import pandas as pd
-from itg.constant import OPEN_AI_API_KEY, MODEL_NAME
+from itg.constant import OPEN_AI_API_KEY, MODEL_NAME, T5WS_WEIGHTS
 from itg.t5_wikisql_base import T5WS
 from itg.types import Prompt, Response
 
@@ -56,7 +56,7 @@ class ITG_Base:
 class ITG_T5WS(ITG_Base):
     def __init__(self) -> None:
         super().__init__()
-        self.model = T5WS('itg/weights/t5-base-mindsdb-sqlizer-0')
+        self.model = T5WS(T5WS_WEIGHTS)
 
     def __call__(self, question: str, database_connection: Any = None) -> Response:
         """
