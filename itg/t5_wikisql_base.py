@@ -1,3 +1,4 @@
+from re import M
 from typing import Tuple, List
 from transformers import AutoModelWithLMHead, AutoTokenizer
 from transformers import T5Tokenizer, T5ForConditionalGeneration
@@ -24,10 +25,15 @@ class T5WSDataset(Dataset):
         self.outputs = outputs
         
     def __len__(self):
-        return len(self.features)
+        return len(self.features['input_ids'])
 
     def __getitem__(self, index) -> Tuple[object, object]:
-        return self.features[:, index], self.outputs[:, index]
+        batch_sample = {
+            'input_ids': self.features['input_ids'][index],
+            'attention_mask': self.features['attention_mask'][index],
+            'labels': self.outputs[index]
+        }
+        return batch_sample
 
 
 class T5WS():
@@ -38,7 +44,7 @@ class T5WS():
         # self.model = T5ForConditionalGeneration.from_pretrained("t5-small").cuda()
 
     def __call__(self, prompt: Prompt) -> str:
-        features, _ = self._prepare(prompt)
+        features = self.tokenizer([prompt.to_text()], return_tensors='pt', truncation=True, padding=True)
         output = self.model.generate(input_ids=features['input_ids'].cuda(),
                                      attention_mask=features['attention_mask'].cuda())
         return self.tokenizer.decode(output[0])
@@ -74,8 +80,6 @@ class T5WS():
                 with LightwoodAutocast():
                     predictions = self.model(**batch)
                     loss = predictions[0]
-                    print(predictions[1], batch['labels'])
-
                 total_loss.append(loss.item())
 
                 loss.backward()
@@ -96,5 +100,6 @@ class T5WS():
 
                         if predicted_completion.lower() == real_completion.lower():
                             correct += 1
-                        print(f'Predicted: {predicted_completion}\nReal: {real_completion}\n')
+                        if random.randint(0,10) == 5:
+                            print(f'[Illustrative Sample] Predicted: {predicted_completion}\nReal: {real_completion}\n')
             print(f'\n\nModel was correct for {correct} queries ({100 * correct / total}%)\n\n')
