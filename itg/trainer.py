@@ -288,9 +288,8 @@ Correct: {correct}
 
 
 if __name__ == '__main__':
-    exit()
     # train_openai()
     # test_openai()
-    # train_t5ws()
+    train_t5ws()
     # test_nlpc()
     # train_nlpc()

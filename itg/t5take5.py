@@ -29,21 +29,20 @@ class T5T5():
         self.tokenizer = T5Tokenizer.from_pretrained("t5-small")
         self.model = T5ForConditionalGeneration.from_pretrained("t5-small")
         print('Creating datasets')
-        train_dataset = Dataset.from_dict({
-            'request': [x['prompt'].to_text() for x in data[:int(len(data) * 0.8)]],
-            'sql': [x['completion'] for x in data[:int(len(data) * 0.8)]]
-        })
-        eval_dataset = Dataset.from_dict({
-            'request': [x['prompt'].to_text() for x in data[int(len(data) * 0.8):]],
-            'sql': [x['completion'] for x in data[int(len(data) * 0.8):]]
-        })
+
+        input_dict = self.tokenizer([x['prompt'].to_text() for x in data], return_tensors='pt', truncation=True, padding=True)
+        print(input_dict.keys())
+        output_dcit = self.tokenizer([x['completion'] for x in data], return_tensors='pt', truncation=True, padding=True)
+        input_dict['decoder_input_ids'] = output_dcit['input_ids']
+        input_dict['decoder_attention_mask'] = output_dcit['attention_mask']
+        dataset = Dataset.from_dict(input_dict)
 
         print('Creating and starting trainer')
         # Initialize our Trainer
         trainer = Seq2SeqTrainer(
             model=self.model,
-            train_dataset=train_dataset,
-            eval_dataset=eval_dataset,
+            train_dataset=dataset,
+            eval_dataset=dataset,
             tokenizer=self.tokenizer,
             compute_metrics=self.compute_metrics,
             args=Seq2SeqTrainingArguments(
@@ -56,7 +55,8 @@ class T5T5():
             )
         )
 
-        trainer.evaluate()
+        ev = trainer.evaluate()
+        print(ev)
         trainer.train()
         trainer.evaluate()
         #trainer.save_model()

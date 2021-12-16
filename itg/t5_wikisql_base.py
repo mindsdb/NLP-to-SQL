@@ -13,22 +13,21 @@ import random
 class T5WSDataset(Dataset):
     def __init__(self, t5ws, data):
         super(T5WSDataset).__init__()
-        self.t5ws = t5ws
-        self.data = []
-        for item in data:
-            features, output = t5ws._prepare(item['prompt'], item['completion'])
-            self.data.append({
-                'input_ids': features['input_ids'][0, :].cuda(),
-                'attention_mask': features['attention_mask'][0, :].cuda()
-            })
-            if output is not None:
-                self.data[-1]['labels'] = output[0, :].cuda()
 
+        features = t5ws.tokenizer([x['prompt'].to_text() for x in data], return_tensors='pt', truncation=True, padding=True)
+        outputs = t5ws.tokenizer([x['completion'] for x in data], return_tensors='pt', truncation=True, padding=True)
+        outputs = outputs['input_ids']
+        outputs = [[(label if label != t5ws.tokenizer.pad_token_id else -100)
+                    for label in labels_example] for labels_example in outputs]
+        outputs = torch.tensor(outputs)
+        self.features = features
+        self.outputs = outputs
+        
     def __len__(self):
-        return len(self.data)
+        return len(self.features)
 
     def __getitem__(self, index) -> Tuple[object, object]:
-        return self.data[index]
+        return self.features[:, index], self.outputs[:, index]
 
 
 class T5WS():
@@ -37,18 +36,6 @@ class T5WS():
         self.model = AutoModelWithLMHead.from_pretrained("mrm8488/t5-base-finetuned-wikiSQL").cuda()
         # self.tokenizer = T5Tokenizer.from_pretrained("t5-small")
         # self.model = T5ForConditionalGeneration.from_pretrained("t5-small").cuda()
-
-    def _prepare(self, prompt: Prompt, query: str = None):
-        features = self.tokenizer([prompt.to_text()], return_tensors='pt',
-                                  truncation=True, padding='max_length', max_length=512)
-        output = None
-        if query is not None:
-            output = self.tokenizer([query], return_tensors='pt', truncation=True, padding='max_length', max_length=512)
-            output = output['input_ids']
-            output = [[(label if label != self.tokenizer.pad_token_id else -100)
-                       for label in labels_example] for labels_example in output]
-            output = torch.tensor(output)
-        return features, output
 
     def __call__(self, prompt: Prompt) -> str:
         features, _ = self._prepare(prompt)
@@ -82,6 +69,8 @@ class T5WS():
                 step += 1
                 optimizer.zero_grad()
 
+                for k in batch:
+                    batch[k] = batch[k].cuda()
                 with LightwoodAutocast():
                     predictions = self.model(**batch)
                     loss = predictions[0]
