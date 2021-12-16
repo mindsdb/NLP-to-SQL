@@ -2,26 +2,23 @@ from copy import deepcopy
 from re import M
 from typing import Tuple, List
 from transformers import AutoModelWithLMHead, AutoTokenizer
-from transformers import T5Tokenizer, T5ForConditionalGeneration
-from controllers import Prompt
+from itg.types import Prompt
 from transformers import AdamW, get_linear_schedule_with_warmup
 from torch.utils.data import Dataset, DataLoader
 from lightwood.helpers.torch import LightwoodAutocast
 import numpy as np
 import torch
 import random
+from lightwood.helpers.device import get_devices
 
 
 class T5WSDataset(Dataset):
     def __init__(self, t5ws, data):
         super(T5WSDataset).__init__()
-
         features = t5ws.tokenizer([x['prompt'].to_text() for x in data], return_tensors='pt', truncation=True, padding=True)
         outputs = t5ws.tokenizer([x['completion'] for x in data], return_tensors='pt', truncation=True, padding=True)
         self.decoder_attention_mask = outputs['attention_mask']
         outputs = outputs['input_ids']
-        #outputs = [[(label if label != t5ws.tokenizer.pad_token_id else -100)
-        #           for label in labels_example] for labels_example in outputs]
         outputs = torch.tensor(outputs)
         self.features = features
         self.outputs = outputs
@@ -41,16 +38,27 @@ class T5WSDataset(Dataset):
 
 
 class T5WS():
-    def __init__(self):
-        self.tokenizer = AutoTokenizer.from_pretrained("mrm8488/t5-base-finetuned-wikiSQL")
-        self.model = AutoModelWithLMHead.from_pretrained("mrm8488/t5-base-finetuned-wikiSQL")
-        self.best_model = deepcopy(self.model)
+    def __init__(self, save_path: str = None):
+        self.device = get_devices()[0]
+        if save_path is None:
+            self.tokenizer = AutoTokenizer.from_pretrained("mrm8488/t5-base-finetuned-wikiSQL")
+            self.model = AutoModelWithLMHead.from_pretrained("mrm8488/t5-base-finetuned-wikiSQL")
+        else:
+            self.tokenizer = AutoTokenizer.from_pretrained(save_path)
+            self.model = AutoModelWithLMHead.from_pretrained(save_path)
+
+        self.model = self.model.to(self.device)
+        self.model = self.model.eval()
         self.best_accuracy = -pow(2, 63)
+
+    def save(self, epoch=0):
+        self.best_model.save_pretrained(f'itg/weights/t5-base-mindsdb-sqlizer-{epoch}')
+        self.tokenizer.save_pretrained(f'itg/weights/t5-base-mindsdb-sqlizer-{epoch}')
 
     def __call__(self, prompt: Prompt) -> str:
         features = self.tokenizer([prompt.to_text()], return_tensors='pt', truncation=True, padding=True)
-        output = self.model.generate(input_ids=features['input_ids'].cuda(),
-                                     attention_mask=features['attention_mask'] .cuda())
+        output = self.model.generate(input_ids=features['input_ids'].to(self.device),
+                                     attention_mask=features['attention_mask'] .to(self.device))
         return self.tokenizer.decode(output[0])
 
     def train(self, training_data: List[Tuple[Prompt, str]]):
@@ -58,7 +66,8 @@ class T5WS():
         random.shuffle(training_data)
         nr_epochs = 200
         batch_size = 8
-
+        self.best_model = deepcopy(self.model.cpu())
+        
         ds_train = T5WSDataset(self, training_data[:int(len(training_data) * 0.8)])
         print(f'Train data length: {len(ds_train)}')
         dlt = DataLoader(ds_train, batch_size=batch_size, shuffle=True)
@@ -73,7 +82,7 @@ class T5WS():
 
         for epoch in range(nr_epochs):
             total_loss = []
-            self.model = self.model.cuda()
+            self.model = self.model.to(self.device)
             self.model = self.model.train()
             step = 0
             for batch in dlt:
@@ -81,7 +90,7 @@ class T5WS():
                 optimizer.zero_grad()
 
                 for k in batch:
-                    batch[k] = batch[k].cuda()
+                    batch[k] = batch[k].to(self.device)
                 with LightwoodAutocast():
                     predictions = self.model(**batch)
                     loss = predictions[0]
@@ -103,8 +112,9 @@ class T5WS():
             if eval_acc > self.best_accuracy:
                 print(f'New best model with evaluation accuracy of: {eval_acc}!')
                 self.best_model = deepcopy(self.model.cpu())
+                self.save()
 
-        self.model = self.best_model.cuda()
+        self.model = self.best_model.to(self.device)
 
     def evaluate(self, ds_eval):
         self.model = self.model.eval()

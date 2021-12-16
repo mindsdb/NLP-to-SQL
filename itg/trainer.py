@@ -1,5 +1,6 @@
 from typing import Dict
-from controllers import ITG, Prompt
+from itg.controllers import ITG
+from itg.types import Prompt
 import json
 import os
 from typing import List
