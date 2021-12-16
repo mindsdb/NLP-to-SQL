@@ -61,7 +61,7 @@ class T5WS():
         rawv = training_data[int(len(training_data) * 0.8):]
 
         parameters = self.model.parameters()
-        optimizer = AdamW(parameters, lr=1e-4)
+        optimizer = AdamW(parameters, lr=1e-3)
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
             num_warmup_steps=30,
@@ -85,7 +85,7 @@ class T5WS():
 
                 loss.backward()
                 optimizer.step()
-                scheduler.step()
+                # scheduler.step()
                 print(f'Current total loss: {np.mean(total_loss)} | Current epoch: {epoch} [Step {step} - \
 {round(100 * (batch_size * step) / len(dst), 2)}% done]')
             print(f'\nTotal loss at end of epoch {epoch}: {np.mean(total_loss)} !\n')
