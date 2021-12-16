@@ -96,7 +96,7 @@ class T5WS():
             for item in rawv:
                 with torch.no_grad():
                     with LightwoodAutocast():
-                        predicted_completion = self(item['prompt']).lstrip(' ').rstrip(' ').replace('</s>','').replace('<pad>', '')
+                        predicted_completion = self(item['prompt']).lstrip(' ').rstrip(' ').replace('</s>', '').replace('<pad>', '')
                         real_completion = item['completion']
 
                         if predicted_completion.lower() == real_completion.lower():
