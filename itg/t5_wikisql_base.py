@@ -20,8 +20,8 @@ class T5WSDataset(Dataset):
         outputs = t5ws.tokenizer([x['completion'] for x in data], return_tensors='pt', truncation=True, padding=True)
         self.decoder_attention_mask = outputs['attention_mask']
         outputs = outputs['input_ids']
-        # outputs = [[(label if label != t5ws.tokenizer.pad_token_id else -100)
-        #            for label in labels_example] for labels_example in outputs]
+        #outputs = [[(label if label != t5ws.tokenizer.pad_token_id else -100)
+        #           for label in labels_example] for labels_example in outputs]
         outputs = torch.tensor(outputs)
         self.features = features
         self.outputs = outputs
@@ -34,7 +34,7 @@ class T5WSDataset(Dataset):
             'input_ids': self.features['input_ids'][index],
             'attention_mask': self.features['attention_mask'][index],
             'labels': self.outputs[index],
-            #'decoder_input_ids': self.outputs[index],  # Still not sure this works or helps
+            # 'decoder_input_ids': self.outputs[index],  # Still not sure this works or helps
             'decoder_attention_mask': self.decoder_attention_mask[index]  # Still not sure this works or helps
         }
         return batch_sample
@@ -45,7 +45,7 @@ class T5WS():
         self.tokenizer = AutoTokenizer.from_pretrained("mrm8488/t5-base-finetuned-wikiSQL")
         self.model = AutoModelWithLMHead.from_pretrained("mrm8488/t5-base-finetuned-wikiSQL").cuda()
         # self.tokenizer = T5Tokenizer.from_pretrained("t5-small")
-        # self.model = T5ForConditionalGeneration.from_pretrained("t5-small").cuda()f
+        # self.model = T5ForConditionalGeneration.from_pretrained("t5-small").cuda()
 
     def __call__(self, prompt: Prompt) -> str:
         features = self.tokenizer([prompt.to_text()], return_tensors='pt', truncation=True, padding=True)
@@ -57,7 +57,7 @@ class T5WS():
         random.seed(14212)
         random.shuffle(training_data)
         nr_epochs = 20
-        batch_size = 16
+        batch_size = 8
 
         dst = T5WSDataset(self, training_data[:int(len(training_data) * 0.8)])
         print(f'Train data length: {len(dst)}')
@@ -65,10 +65,10 @@ class T5WS():
         rawv = training_data[int(len(training_data) * 0.8):]
 
         parameters = self.model.parameters()
-        optimizer = AdamW(parameters, lr=1e-4)
+        optimizer = AdamW(parameters, lr=1e-5)
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
-            num_warmup_steps=30,
+            num_warmup_steps=5,
             num_training_steps=len(dst) * nr_epochs,
         )
 
@@ -85,11 +85,16 @@ class T5WS():
                 with LightwoodAutocast():
                     predictions = self.model(**batch)
                     loss = predictions[0]
-
+                
+                nl = loss.item()
+                if 'nan' in str(nl).lower():
+                    print('Got a loss equal to nan!')
+                    optimizer.zero_grad()
+                    break
+                total_loss.append(nl)
                 loss.backward()
                 optimizer.step()
-                # scheduler.step()
-                total_loss.append(loss.item())
+                scheduler.step()
 
                 print(f'Current total loss: {np.mean(total_loss)} | Current epoch: {epoch} [Step {step} - \
 {round(100 * (batch_size * step) / len(dst), 2)}% done]')
@@ -101,7 +106,7 @@ class T5WS():
             for item in rawv:
                 with torch.no_grad():
                     with LightwoodAutocast():
-                        predicted_completion = self(item['prompt']).lstrip(' ').rstrip(' ').replace('</s>', '').replace('<pad>', '')
+                        predicted_completion = self(item['prompt']).replace('</s>', '').replace('<pad>', '').lstrip(' ').rstrip(' ')
                         real_completion = item['completion']
 
                         if predicted_completion.lower() == real_completion.lower():
