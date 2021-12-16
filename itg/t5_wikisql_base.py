@@ -51,7 +51,7 @@ class T5WS():
         self.model = self.model.eval()
         self.best_accuracy = -pow(2, 63)
 
-    def save(self, epoch=0):
+    def save(self, epoch: int):
         self.best_model.save_pretrained(f'itg/weights/t5-base-mindsdb-sqlizer-{epoch}')
         self.tokenizer.save_pretrained(f'itg/weights/t5-base-mindsdb-sqlizer-{epoch}')
 
@@ -112,7 +112,7 @@ class T5WS():
             if eval_acc > self.best_accuracy:
                 print(f'New best model with evaluation accuracy of: {eval_acc}!')
                 self.best_model = deepcopy(self.model.cpu())
-                self.save()
+                self.save(epoch)
 
         self.model = self.best_model.to(self.device)
 
