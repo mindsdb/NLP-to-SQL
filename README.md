@@ -22,7 +22,7 @@ Both OpenAI and NLP-Cloud are very good provided:
 Fine tuning OpenAI models (tried ~14 different hyperparameter and data format combos), however, *always* just makes them worst, they go from "slightly" wrong to "complete nonsense".
 This more or less seems to fit the "stochastic parrot" hypothesis, where these models are still not capable of generalization :/
 
-Hugging-face models with training showcase somewhat more promising results than both OpenAI and NLP Cloud. But training seems to easily break the model (e.g. it starts always predicting <pad> tokens). Training the models for seq2seq predictions "properly" is hard, official docs on the topic are few and mainly outdated, examples are incomplete and other tutorials are just blog-spam.
+Hugging-face models with training showcase somewhat more promising results than both OpenAI and NLP Cloud. But training seems to easily break the model (e.g. it starts always predicting padding tokens). Training the models for seq2seq predictions "properly" is hard, official docs on the topic are few and mainly outdated, examples are incomplete and other tutorials are just blog-spam.
 
 Setting up and fine-tuning GPT-J also seems non trivial (I assume it generalizes to neo too), I failed even trying to get the env working.
 
