@@ -12,7 +12,7 @@ sales = pd.DataFrame({
                  '2021-10-02 22:04:01', '2021-10-02 23:11:50']
 })
 
-itg.register((sales, 'sales'))
+itg.register('CREATE TABLE sales(product Text, store Text, price Decimal, datetime Datetime)')
 
 for i in range(1):
     print('\n\n\n\n')
